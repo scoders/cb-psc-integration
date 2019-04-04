@@ -32,9 +32,7 @@ class Connector(object):
 
     def result(self, binary, **kwargs):
         return AnalysisResult.create(
-            sha256=binary.sha256,
-            connector_name=self.name,
-            **kwargs,
+            sha256=binary.sha256, connector_name=self.name, **kwargs
         )
 
     def analyze(self, binary, stream):

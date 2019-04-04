@@ -41,6 +41,9 @@ class Base(object):
             setattr(self, key, value)
         return self.save()
 
+    def as_dict(self):
+        return {c.name: getattr(self, c.name) for c in self.__table__.columns}
+
 
 class Binary(Base):
     __tablename__ = "binaries"
