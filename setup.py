@@ -24,6 +24,9 @@ setup(
         # TODO(ww): Replace with stable version once merged and released.
         "cbapi @ git+ssh://git@github.com/trailofbits/cbapi-python@tob-cbth-binaries#egg=cbapi",
         "Flask",
+        "redis",
+        "requests",
+        "rq",
         "SQLAlchemy",
     ],
 )

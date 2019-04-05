@@ -1,43 +1,34 @@
 import logging
 
 from flask import Flask, abort, request, jsonify
+from rq import Queue
 
 from cb.psc.integration.config import config
 from cb.psc.integration import database
 from cb.psc.integration.connector import Connector
-from cb.psc.integration.database import Binary, AnalysisResult
-
+from cb.psc.integration.workers import conn as redis
+from cb.psc.integration.ubs import fetch_binaries
 
 logging.basicConfig()
-logger = logging.getLogger()
-logger.setLevel(logging.DEBUG)
+log = logging.getLogger()
+log.setLevel(logging.DEBUG)
 
 app = Flask(__name__)
+
+binary_retrieval = Queue("binary_retrieval", connection=redis)
 
 
 class NullConnector(Connector):
     name = "null"
 
     def analyze(self, binary, stream):
-        logger.info(f"analyzing binary {binary.sha256}")
+        log.info(f"analyzing binary {binary.sha256}")
 
         return self.result(
             binary,
             analysis_name=self.name,
             score=100,
         )
-
-
-def fetch_binary(hash):
-    # TODO(ww): De-stub.
-    b = Binary.from_hash(hash)
-
-    if not b:
-        b = Binary.create(sha256=hash)
-
-    logger.debug(f"binary: {b.sha256}")
-
-    return (b, "")
 
 
 @app.teardown_request
@@ -55,10 +46,8 @@ def analyze():
     if not isinstance(hashes, list) or len(hashes) < 1:
         abort(400)
 
-    for hash in hashes:
-        for connector in Connector.connectors():
-            binary, stream = fetch_binary(hash)
-            connector.analyze(binary, stream)
+    binary_retrieval.enqueue(fetch_binaries, hashes)
+    log.debug(f"enqueued retrieval of {len(hashes)} binaries")
 
     return jsonify(success=True)
 
@@ -74,16 +63,16 @@ def analysis():
         abort(400)
 
     response = {}
-    for hash in hashes:
-        results = AnalysisResult.query.filter_by(sha256=hash)
-        response[hash] = [result.as_dict() for result in results]
+    # for hash in hashes:
+    #     results = AnalysisResult.query.filter_by(sha256=hash)
+    #     response[hash] = [result.as_dict() for result in results]
 
     return jsonify(success=True, data=response)
 
 
 def main():
     # TODO(ww): Config.
-    database.Base.metadata.create_all(database.engine)
+    database.init_db()
     app.run(host=config.flask_host, port=config.flask_port)
 
 

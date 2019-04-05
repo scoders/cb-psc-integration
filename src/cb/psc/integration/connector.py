@@ -2,8 +2,15 @@ from .database import AnalysisResult
 
 import logging
 
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+log = logging.getLogger(__name__)
+log.setLevel(logging.DEBUG)
+
+
+def analyze_binary(hash):
+    log.debug(f"analyze_binary: {hash}")
+
+    for connector in Connector.connectors():
+        pass
 
 
 class Connector(object):
@@ -36,4 +43,4 @@ class Connector(object):
         )
 
     def analyze(self, binary, stream):
-        logger.warning("analyze() called on top-level Connector")
+        log.warning("analyze() called on top-level Connector")

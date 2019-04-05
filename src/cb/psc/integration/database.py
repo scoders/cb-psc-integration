@@ -1,4 +1,5 @@
-from .config import config
+from datetime import datetime
+import logging
 
 from sqlalchemy import Column, Integer, String, DateTime, Boolean, create_engine
 from sqlalchemy.ext.declarative import as_declarative
@@ -6,14 +7,18 @@ from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.exc import DatabaseError
 
-from datetime import datetime
-import logging
+from .config import config
 
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+log = logging.getLogger(__name__)
+log.setLevel(logging.DEBUG)
 
 engine = create_engine(config.database)
 session = scoped_session(sessionmaker(bind=engine))
+
+
+def init_db():
+    log.debug("init_db called")
+    Base.metadata.create_all(engine)
 
 
 @as_declarative()
