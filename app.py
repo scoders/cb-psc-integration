@@ -49,9 +49,9 @@ def analysis():
         abort(400)
 
     response = {}
-    # for hash in hashes:
-    #     results = AnalysisResult.query.filter_by(sha256=hash)
-    #     response[hash] = [result.as_dict() for result in results]
+    for hash in hashes:
+        results = database.AnalysisResult.query.filter_by(sha256=hash)
+        response[hash] = [result.as_dict() for result in results]
 
     return jsonify(success=True, data=response)
 
