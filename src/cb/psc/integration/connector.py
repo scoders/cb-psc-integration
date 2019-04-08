@@ -12,6 +12,9 @@ binary_analysis = Queue("binary_analysis", connection=redis)
 
 
 def analyze_binary(hash):
+    # TODO(ww): Need a way to automatically load all connectors.
+    from connectors.null import NullConnector as _
+
     log.debug(f"analyze_binary: {hash}")
 
     for connector in Connector.connectors():
