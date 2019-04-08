@@ -7,7 +7,7 @@ import cbapi.psc.threathunter as cbth
 from .config import config
 from .connector import analyze_binary
 from .database import session, Binary
-from .workers import conn as redis
+from .workers import redis
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
@@ -45,10 +45,11 @@ def filter_available(hashes):
 
 
 def fetch_binaries(hashes):
+    log.debug(f"fetch_binaries: {len(hashes)} hashes")
     hashes = filter_available(hashes)
 
     if len(hashes) == 0:
-        log.info("no new hashes that aren't already available")
+        log.info("no hashes that aren't already available")
         return None
 
     # NOTE(ww): Binary retrieval happens in two stages:

@@ -1,16 +1,26 @@
-from .database import AnalysisResult
-
 import logging
+
+from rq import Queue
+
+from .database import Binary, AnalysisResult
+from .workers import redis
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
+
+binary_analysis = Queue("binary_analysis", connection=redis)
 
 
 def analyze_binary(hash):
     log.debug(f"analyze_binary: {hash}")
 
     for connector in Connector.connectors():
-        pass
+        log.debug(f"running {connector.name} analysis")
+        binary = Binary.from_hash(hash)
+        data = redis.get(hash)
+        binary_analysis.enqueue(connector.analyze, binary, data)
+        # TODO(ww): Need to track all analyses and
+        # evict the binary from redis once all are done.
 
 
 class Connector(object):

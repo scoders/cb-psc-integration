@@ -11,7 +11,7 @@ setup(
     author_email="dev-support@carbonblack.com",
     description="Carbon Black PSC Integration Library",
     long_description=__doc__,
-    packages=["cb.psc.integration"],
+    packages=["cb.psc.integration", "connectors"],
     package_dir={"": "src"},
     platforms="any",
     classifiers=[
@@ -27,6 +27,7 @@ setup(
         "redis",
         "requests",
         "rq",
+        "supervisor @ git+https://github.com/Supervisor/supervisor",
         "SQLAlchemy",
     ],
 )

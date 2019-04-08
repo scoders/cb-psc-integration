@@ -5,8 +5,7 @@ from rq import Queue
 
 from cb.psc.integration.config import config
 from cb.psc.integration import database
-from cb.psc.integration.connector import Connector
-from cb.psc.integration.workers import conn as redis
+from cb.psc.integration.workers import redis
 from cb.psc.integration.ubs import fetch_binaries
 
 logging.basicConfig()
@@ -16,19 +15,6 @@ log.setLevel(logging.DEBUG)
 app = Flask(__name__)
 
 binary_retrieval = Queue("binary_retrieval", connection=redis)
-
-
-class NullConnector(Connector):
-    name = "null"
-
-    def analyze(self, binary, stream):
-        log.info(f"analyzing binary {binary.sha256}")
-
-        return self.result(
-            binary,
-            analysis_name=self.name,
-            score=100,
-        )
 
 
 @app.teardown_request
