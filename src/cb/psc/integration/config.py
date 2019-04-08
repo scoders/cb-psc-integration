@@ -1,21 +1,23 @@
-from collections import namedtuple
+from typing import List, Optional, NamedTuple
+import os
 
-Config = namedtuple(
-    "Config",
-    [
-        "cbth_profile",
-        "database",
-        "flask_host",
-        "flask_port",
-        "redis_host",
-        "redis_port",
-        "binary_timeout",
-    ],
-)
+
+class Config(NamedTuple):
+    loglevel: str
+    cbth_profile: str
+    database: str
+    flask_host: str
+    flask_port: int
+    redis_host: str
+    redis_port: int
+    binary_timeout: Optional[int]
+    connector_dirs: List[str]
+
 
 # TODO(ww): Load config from file.
 
 config = Config(
+    loglevel=os.getenv("LOGLEVEL", "DEBUG"),
     cbth_profile="default",
     database="sqlite:////private/tmp/pscint.db",
     flask_host="localhost",
@@ -23,4 +25,7 @@ config = Config(
     redis_host="localhost",
     redis_port=6379,
     binary_timeout=None,  # NOTE(ww): Set to an int for a timeout in seconds.
+    connector_dirs=[
+        "/usr/share/cb/integrations",
+    ],
 )

@@ -1,14 +1,10 @@
 import logging
 
-from rq import Queue
-
 from .database import Binary, AnalysisResult
-from .workers import redis
+from .workers import redis, binary_analysis
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
-
-binary_analysis = Queue("binary_analysis", connection=redis)
 
 
 def analyze_binary(hash):

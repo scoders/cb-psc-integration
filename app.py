@@ -1,20 +1,18 @@
 import logging
 
 from flask import Flask, abort, request, jsonify
-from rq import Queue
 
 from cb.psc.integration.config import config
+# from cb.psc.integration.connector import Connector
 from cb.psc.integration import database
-from cb.psc.integration.workers import redis
+from cb.psc.integration.workers import binary_retrieval
 from cb.psc.integration.ubs import fetch_binaries
 
 logging.basicConfig()
 log = logging.getLogger()
-log.setLevel(logging.DEBUG)
+log.setLevel(config.loglevel)
 
 app = Flask(__name__)
-
-binary_retrieval = Queue("binary_retrieval", connection=redis)
 
 
 @app.teardown_request
@@ -59,6 +57,7 @@ def analysis():
 def main():
     # TODO(ww): Config.
     database.init_db()
+    # Connector.load_connectors()
     app.run(host=config.flask_host, port=config.flask_port)
 
 

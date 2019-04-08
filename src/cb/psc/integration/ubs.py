@@ -7,15 +7,12 @@ import cbapi.psc.threathunter as cbth
 from .config import config
 from .connector import analyze_binary
 from .database import session, Binary
-from .workers import redis
+from .workers import redis, binary_retrieval, binary_analysis
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
 cb = cbth.CbThreatHunterAPI(profile=config.cbth_profile)
-
-binary_retrieval = Queue("binary_retrieval", connection=redis)
-binary_analysis = Queue("binary_analysis", connection=redis)
 
 
 def download_binary(hash, url):
