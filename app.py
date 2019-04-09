@@ -3,8 +3,7 @@ import logging
 from flask import Flask, abort, request, jsonify
 
 from cb.psc.integration.config import config
-# from cb.psc.integration.connector import Connector
-from cb.psc.integration import database
+from cb.psc.integration import connector, database
 from cb.psc.integration.workers import binary_retrieval
 from cb.psc.integration.ubs import fetch_binaries
 
@@ -57,7 +56,9 @@ def analysis():
 def main():
     # TODO(ww): Config.
     database.init_db()
-    # Connector.load_connectors()
+    # TODO(ww): Probably don't need to do this here, since only
+    # worker processes need to see the list of connectors.
+    connector.load_connectors()
     app.run(host=config.flask_host, port=config.flask_port)
 
 

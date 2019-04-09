@@ -11,7 +11,7 @@ setup(
     author_email="dev-support@carbonblack.com",
     description="Carbon Black PSC Integration Library",
     long_description=__doc__,
-    packages=["cb.psc.integration", "connectors"],
+    packages=["cb.psc.integration"],
     package_dir={"": "src"},
     platforms="any",
     classifiers=[

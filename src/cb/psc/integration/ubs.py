@@ -1,7 +1,6 @@
 import logging
 
 import requests
-from rq import Queue
 import cbapi.psc.threathunter as cbth
 
 from .config import config

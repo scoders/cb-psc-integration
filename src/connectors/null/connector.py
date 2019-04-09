@@ -10,8 +10,8 @@ log.setLevel(logging.DEBUG)
 class NullConnector(Connector):
     name = "null"
 
-    def analyze(self, binary, stream):
-        log.info(f"analyzing binary {binary.sha256}")
+    def analyze(self, binary, data):
+        log.info(f"{self.name}: analyzing binary {binary.sha256}")
 
         return self.result(
             binary,

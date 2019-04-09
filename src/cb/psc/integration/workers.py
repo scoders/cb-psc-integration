@@ -4,6 +4,7 @@ import redis as r
 from rq import Worker, Queue, Connection
 
 from cb.psc.integration.config import config
+from cb.psc.integration import connector
 
 logging.basicConfig()
 log = logging.getLogger()
@@ -16,6 +17,7 @@ binary_retrieval = Queue("binary_retrieval", connection=redis)
 binary_analysis = Queue("binary_analysis", connection=redis)
 
 if __name__ == "__main__":
+    connector.load_connectors()
     with Connection(redis):
         worker = Worker(list(map(Queue, listen)))
         worker.work()

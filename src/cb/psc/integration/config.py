@@ -3,6 +3,7 @@ import os
 
 
 class Config(NamedTuple):
+    environment: str
     loglevel: str
     cbth_profile: str
     database: str
@@ -17,6 +18,7 @@ class Config(NamedTuple):
 # TODO(ww): Load config from file.
 
 config = Config(
+    environment=os.getenv("ENVIRONMENT", "development"),
     loglevel=os.getenv("LOGLEVEL", "DEBUG"),
     cbth_profile="default",
     database="sqlite:////private/tmp/pscint.db",
@@ -29,3 +31,7 @@ config = Config(
         "/usr/share/cb/integrations",
     ],
 )
+
+if config.environment == "development":
+    conn_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../connectors"))
+    config.connector_dirs.append(conn_dir)
