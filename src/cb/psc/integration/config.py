@@ -23,7 +23,9 @@ class Config(NamedTuple):
             binary_timeout=None,
             connector_dirs=[
                 "/usr/share/cb/integrations",
-                os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../connectors")),
+                os.path.abspath(
+                    os.path.join(os.path.dirname(__file__), "../../../connectors")
+                ),
             ],
         )
 

@@ -7,7 +7,7 @@ from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.exc import DatabaseError
 
-from .config import config
+from cb.psc.integrstion.config import config
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
@@ -59,6 +59,14 @@ class Binary(Base):
     @classmethod
     def from_hash(cls, hash):
         return cls.query.filter(cls.sha256 == hash).one_or_none()
+
+    @property
+    def data_key(self):
+        return f"/binaries/{self.sha256}"
+
+    @property
+    def count_key(self):
+        return f"{self.data_key}/refcount"
 
 
 class AnalysisResult(Base):

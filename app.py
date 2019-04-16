@@ -3,10 +3,8 @@ import logging
 from flask import Flask, abort, request, jsonify
 
 from cb.psc.integration.config import config
-from cb.psc.integration.connector import active_analyses
-from cb.psc.integration import connector, database
-from cb.psc.integration.workers import binary_retrieval
-from cb.psc.integration.ubs import fetch_binaries
+import cb.psc.integration.database as database
+import cb.psc.integration.workers as workers
 
 logging.basicConfig()
 log = logging.getLogger()
@@ -30,7 +28,7 @@ def analyze():
     if not isinstance(hashes, list) or len(hashes) < 1:
         abort(400)
 
-    binary_retrieval.enqueue(fetch_binaries, hashes)
+    workers.binary_retrieval.enqueue(workers.fetch_binaries, hashes)
     log.debug(f"enqueued retrieval of {len(hashes)} binaries")
 
     return jsonify(success=True)
@@ -49,7 +47,7 @@ def analysis():
     # TODO(ww): Return pending job IDs
     response = {
         "completed": {},
-        "pending": active_analyses(),
+        "pending": workers.active_analyses(),
     }
     for hash in hashes:
         results = database.AnalysisResult.query.filter_by(sha256=hash)

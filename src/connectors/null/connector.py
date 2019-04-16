@@ -16,8 +16,4 @@ class NullConnector(Connector):
 
         time.sleep(15)
 
-        return self.result(
-            binary,
-            analysis_name=self.name,
-            score=100,
-        )
+        return self.result(binary, analysis_name=self.name, score=100)
