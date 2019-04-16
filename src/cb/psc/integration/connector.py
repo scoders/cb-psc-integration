@@ -36,7 +36,7 @@ class Connector(object):
     def result(self, binary, **kwargs):
         job = get_current_job()
         return AnalysisResult.create(
-            sha256=binary.sha256, connector_name=self.name, job_id=job.id, **kwargs
+            **kwargs, sha256=binary.sha256, connector_name=self.name, job_id=job.id,
         )
 
     def _analyze(self, binary):

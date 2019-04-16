@@ -44,7 +44,6 @@ def analysis():
     if not isinstance(hashes, list) or len(hashes) < 1:
         abort(400)
 
-    # TODO(ww): Return pending job IDs
     response = {
         "completed": {},
         "pending": workers.active_analyses(),
@@ -55,9 +54,10 @@ def analysis():
 
     return jsonify(success=True, data=response)
 
+# TODO(ww): Route for deleting results.
+
 
 def main():
-    # TODO(ww): Config.
     database.init_db()
     app.run(host=config.flask_host, port=config.flask_port)
 
