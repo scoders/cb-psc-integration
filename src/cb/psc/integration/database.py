@@ -91,6 +91,9 @@ class AnalysisResult(Base):
     # When the analysis was performed.
     scan_time = Column(DateTime, default=datetime.utcnow, nullable=False)
 
+    # The ID of the job that ran the analysis.
+    job_id = Column(String(36), nullable=False)
+
     @property
     def binary(self):
         return Binary.from_hash(self.sha256)

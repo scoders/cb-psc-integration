@@ -4,12 +4,31 @@ import os.path
 import importlib.util
 import sys
 
+from rq import get_current_job
+from rq.job import Job
+from rq.registry import StartedJobRegistry
+
 from .config import config
 from .database import Binary, AnalysisResult
 from .workers import redis, binary_analysis
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
+
+
+def active_analyses():
+    """
+    Returns a list of job IDs corresponding to active (pending or running)
+    analysis tasks.
+    """
+    # TODO(ww): Use this once fetch_many makes it into an rq release.
+    # jobs = Job.fetch_many(binary_analysis.job_ids, connection=redis)
+    pending_jobs = [Job.fetch(job_id) for job_id in binary_analysis.job_ids]
+
+    pending_ids = [job.id for job in pending_jobs if job.func_name != "analyze_binary"]
+    started = StartedJobRegistry("binary_analysis", connection=redis)
+
+    return pending_ids + started.get_job_ids()
 
 
 def analyze_binary(hash):
@@ -84,8 +103,9 @@ class Connector(object):
         return self.__class__.__name__.lower()
 
     def result(self, binary, **kwargs):
+        job = get_current_job()
         return AnalysisResult.create(
-            sha256=binary.sha256, connector_name=self.name, **kwargs
+            sha256=binary.sha256, connector_name=self.name, job_id=job.id, **kwargs
         )
 
     def analyze(self, binary, data):

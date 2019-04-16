@@ -3,6 +3,7 @@ import logging
 from flask import Flask, abort, request, jsonify
 
 from cb.psc.integration.config import config
+from cb.psc.integration.connector import active_analyses
 from cb.psc.integration import connector, database
 from cb.psc.integration.workers import binary_retrieval
 from cb.psc.integration.ubs import fetch_binaries
@@ -45,10 +46,14 @@ def analysis():
     if not isinstance(hashes, list) or len(hashes) < 1:
         abort(400)
 
-    response = {}
+    # TODO(ww): Return pending job IDs
+    response = {
+        "completed": {},
+        "pending": active_analyses(),
+    }
     for hash in hashes:
         results = database.AnalysisResult.query.filter_by(sha256=hash)
-        response[hash] = [result.as_dict() for result in results]
+        response["completed"][hash] = [result.as_dict() for result in results]
 
     return jsonify(success=True, data=response)
 
@@ -56,9 +61,6 @@ def analysis():
 def main():
     # TODO(ww): Config.
     database.init_db()
-    # TODO(ww): Probably don't need to do this here, since only
-    # worker processes need to see the list of connectors.
-    connector.load_connectors()
     app.run(host=config.flask_host, port=config.flask_port)
 
 
