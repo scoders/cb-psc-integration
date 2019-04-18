@@ -2,10 +2,10 @@
 all:
 	@echo "Run my targets individually!"
 
-.PHONY: workers
-workers:
+.PHONY: serve
+serve:
 	supervisord -n
 
-.PHONY: app
-app:
-	python3 app.py
+.PHONY: clean
+clean:
+	rm -f dump.rdb logs/*
