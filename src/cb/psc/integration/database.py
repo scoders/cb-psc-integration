@@ -7,7 +7,7 @@ from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.exc import DatabaseError
 
-from cb.psc.integrstion.config import config
+from cb.psc.integration.config import config
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)

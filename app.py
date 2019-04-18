@@ -21,7 +21,7 @@ def remove_session(ex=None):
 @app.route("/analyze", methods=["POST"])
 def analyze():
     req = request.get_json(force=True)
-    logging.debug(f"/analyze: {req!r}")
+    log.debug(f"/analyze: {req!r}")
 
     hashes = req.get("hashes")
 
@@ -34,11 +34,8 @@ def analyze():
     return jsonify(success=True)
 
 
-@app.route("/analysis", methods=["GET"])
-def analysis():
-    req = request.get_json(force=True)
-    logging.debug(f"/analysis: {req!r}")
-
+def retrieve_analyses(req):
+    log.debug(f"retrieve_analyses: {req}")
     hashes = req.get("hashes")
 
     if not isinstance(hashes, list) or len(hashes) < 1:
@@ -54,7 +51,21 @@ def analysis():
 
     return jsonify(success=True, data=response)
 
-# TODO(ww): Route for deleting results.
+
+def remove_analyses(req):
+    log.debug(f"remove_analyses: {req}")
+    # TODO(ww): Remove analyses by hash, by connector name, by job ID
+    hashes = req.get("hashes")
+
+
+@app.route("/analysis", methods=["GET", "DELETE"])
+def analysis():
+    log.debug(f"/analysis: {request}")
+    req = request.get_json(force=True)
+    if request.method == "GET":
+        return retrieve_analyses(req)
+    elif request.method == "DELETE":
+        return remove_analyses(req)
 
 
 def main():
