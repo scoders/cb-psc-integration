@@ -1,5 +1,4 @@
 import logging
-from functools import lru_cache
 
 from rq import get_current_job
 
@@ -27,7 +26,6 @@ class Connector(object):
         return cls._instance
 
     @classmethod
-    @lru_cache()
     def connectors(cls):
         for konnector in cls.__subclasses__():
             connector = konnector.instance()

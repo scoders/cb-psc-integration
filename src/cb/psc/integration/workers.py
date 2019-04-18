@@ -36,11 +36,9 @@ def download_binary(hash, url):
     log.info(f"downloading binary {hash} from {url}")
     # TODO(ww): Exception handling.
     resp = requests.get(url, stream=True, timeout=config.binary_timeout)
-    redis.set(hash, resp.raw.read())
+    redis.set(f"/binaries/{hash}", resp.raw.read())
 
     Binary.create(sha256=hash, available=True)
-
-    return None
 
 
 # TODO(ww): Probably belongs in another file
@@ -67,7 +65,7 @@ def fetch_binaries(hashes):
 
     if len(hashes) == 0:
         log.info("no hashes that aren't already available")
-        return None
+        return
 
     # NOTE(ww): Binary retrieval happens in two stages:
     #  * We retrieve a list of available/unavailable binaries and their
@@ -89,8 +87,6 @@ def fetch_binaries(hashes):
 
     if len(downloads.not_found) > 0:
         log.warning(f"no binaries found for hashes: {','.join(downloads.not_found)}")
-
-    return None
 
 
 def active_analyses():

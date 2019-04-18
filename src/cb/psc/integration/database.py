@@ -1,7 +1,7 @@
 from datetime import datetime
 import logging
 
-from sqlalchemy import Column, Integer, String, DateTime, Boolean, create_engine
+from sqlalchemy import Column, Integer, String, DateTime, Boolean, JSON, create_engine
 from sqlalchemy.ext.declarative import as_declarative
 from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.schema import UniqueConstraint
@@ -98,6 +98,9 @@ class AnalysisResult(Base):
 
     # When the analysis was performed.
     scan_time = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    # An optional JSON payload produced by the analysis.
+    payload = Column(JSON, default={}, nullable=False)
 
     # The ID of the job that ran the analysis.
     job_id = Column(String(36), nullable=False)
