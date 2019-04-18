@@ -1,6 +1,8 @@
 import logging
 import os
 from pathlib import Path
+from functools import lru_cache
+from base64 import b64encode
 
 import yara
 
@@ -13,17 +15,20 @@ log.setLevel(logging.DEBUG)
 class YaraConnector(Connector):
     name = "yara"
     # TODO(ww): Provide an API for connector configs.
+    # TODO(ww): Rule caching.
     config = {
         "rules_directory": os.path.join(os.path.dirname(__file__), "yara_rules"),
         "error_on_warning": True,
         "includes": True,
+        "timeout": 60,
     }
 
-    def __init__(self):
-        super().__init__()
-        self.yara_rules = self.compile_rules()
-
-    def compile_rules(self):
+    @property
+    @lru_cache()
+    def yara_rules(self):
+        # NOTE(ww): This is a cached property instead of an instance
+        # because yara.Rules objects cannot be pickled.
+        log.debug("compiling YARA rules")
         rule_map = {}
         for entry in os.scandir(self.config["rules_directory"]):
             if not entry.is_file():
@@ -44,4 +49,35 @@ class YaraConnector(Connector):
             return []
 
     def analyze(self, binary, data):
-        return self.result(binary, analysis_name=self.name, score=100)
+        try:
+            matches = self.yara_rules.match(data=data, timeout=self.config["timeout"])
+        except yara.TimeoutError:
+            log.warning(f"{self.name} timed out while analyzing {binary.sha256}")
+            return self.result(binary, analysis_name="timeout", error=True)
+        except yara.Error as e:
+            log.error(f"{self.name} couldn't analyze {binary.sha256}: {e}")
+            return self.result(binary, analysis_name="exception", error=True)
+
+        log.info(f"{self.name}: {len(matches)} matches")
+
+        results = []
+        for match in matches:
+            strings = []
+            for string in match.strings:
+                strings.append(
+                    {
+                        "offset": string[0],
+                        "identifier": string[1],
+                        "data": b64encode(string[2]).decode(),
+                    }
+                )
+            results.append(
+                self.result(
+                    binary,
+                    analysis_name=f"{match.namespace}:{match.rule}",
+                    score=match.meta.get("score"),
+                    payload=strings,
+                )
+            )
+
+        return results
