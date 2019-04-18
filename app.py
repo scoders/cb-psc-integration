@@ -15,6 +15,7 @@ app = Flask(__name__)
 
 @app.teardown_request
 def remove_session(ex=None):
+    database.session.commit()
     database.session.remove()
 
 
@@ -41,10 +42,7 @@ def retrieve_analyses(req):
     if not isinstance(hashes, list) or len(hashes) < 1:
         abort(400)
 
-    response = {
-        "completed": {},
-        "pending": workers.active_analyses(),
-    }
+    response = {"completed": {}, "pending": workers.active_analyses()}
     for hash in hashes:
         results = database.AnalysisResult.query.filter_by(sha256=hash)
         response["completed"][hash] = [result.as_dict() for result in results]
@@ -53,9 +51,21 @@ def retrieve_analyses(req):
 
 
 def remove_analyses(req):
-    log.debug(f"remove_analyses: {req}")
     # TODO(ww): Remove analyses by hash, by connector name, by job ID
+    log.debug(f"remove_analyses: {req}")
     hashes = req.get("hashes")
+
+    if not isinstance(hashes, list) or len(hashes) < 1:
+        abort(400)
+
+    # TODO(ww): Probably not very efficient, doing
+    # this on the __table__ would probably be a bit
+    # faster.
+    database.AnalysisResult.query.filter(
+        database.AnalysisResult.sha256.in_(hashes)
+    ).delete(synchronize_session=False)
+
+    return jsonify(success=True)
 
 
 @app.route("/analysis", methods=["GET", "DELETE"])
@@ -73,5 +83,5 @@ def main():
     app.run(host=config.flask_host, port=config.flask_port)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

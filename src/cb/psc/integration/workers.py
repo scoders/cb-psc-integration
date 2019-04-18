@@ -38,7 +38,11 @@ def download_binary(hash, url):
     resp = requests.get(url, stream=True, timeout=config.binary_timeout)
     redis.set(f"/binaries/{hash}", resp.raw.read())
 
-    Binary.create(sha256=hash, available=True)
+    binary = Binary.from_hash(hash)
+    if binary is None:
+        Binary.create(sha256=hash, available=True)
+    else:
+        binary.update(available=True)
 
 
 # TODO(ww): Probably belongs in another file
