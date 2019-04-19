@@ -1,0 +1,4 @@
+error_on_warning: false
+includes: true
+timeout: 60
+default_score: 0

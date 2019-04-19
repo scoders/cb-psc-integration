@@ -1,6 +1,6 @@
 import logging
 from functools import lru_cache
-from typing import NamedTuple
+from dataclasses import dataclass
 import os
 import importlib
 
@@ -14,15 +14,35 @@ log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
 
-class ConnectorConfig(NamedTuple):
+def config(konfig):
+    # NOTE(ww): This is a little silly: I didn't want
+    # connector authors to have to remember @dataclass
+    # or subclassing, so this decorator just handles
+    # both.
+    @dataclass
+    class Config(konfig, ConnectorConfig):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+        # NOTE(ww): In theory, it should be possible to
+        # have the config decorator take a connector
+        # parameter and use it to set connector.konfig,
+        # but there's something weird happening in module
+        # resolution during pickling that's stopping that.
+    return Config
+
+
+@dataclass
+class ConnectorConfig:
     @classmethod
     def from_file(cls):
+        log.debug(f"loading config from file for {cls.__name__}")
         # NOTE(ww): __file__ here refers to the base config file, so we need
         # to grab the module and resolve the file from there.
         conn_mod = importlib.import_module(cls.__module__)
         config_filename = os.path.join(os.path.dirname(conn_mod.__file__), "config.yml")
         with open(config_filename, "r") as config_file:
             config_data = yaml.load(config_file)
+            log.info(f"loaded config data: {config_data}")
             return cls(**config_data)
 
 
