@@ -21,6 +21,7 @@ class YaraConnector(Connector):
         "error_on_warning": True,
         "includes": True,
         "timeout": 60,
+        "default_score": 100,
     }
 
     @property
@@ -71,10 +72,19 @@ class YaraConnector(Connector):
                         "data": b64encode(string[2]).decode(),
                     }
                 )
+
+            analysis_name = f"{match.namespace}:{match.rule}"
+            score = match.meta.get("score")
+            if score is None:
+                score = self.config["default_score"]
+                log.warning(
+                    f"{analysis_name} does not provide a score, using default score ({score})"
+                )
+
             results.append(
                 self.result(
                     binary,
-                    analysis_name=f"{match.namespace}:{match.rule}",
+                    analysis_name=analysis_name,
                     score=match.meta.get("score"),
                     payload=strings,
                 )
