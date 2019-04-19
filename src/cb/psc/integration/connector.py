@@ -1,12 +1,29 @@
 import logging
+from functools import lru_cache
+from typing import NamedTuple
+import os
+import importlib
 
 from rq import get_current_job
+import yaml
 
 from .database import AnalysisResult
 import cb.psc.integration.workers as workers
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
+
+
+class ConnectorConfig(NamedTuple):
+    @classmethod
+    def from_file(cls):
+        # NOTE(ww): __file__ here refers to the base config file, so we need
+        # to grab the module and resolve the file from there.
+        conn_mod = importlib.import_module(cls.__module__)
+        config_filename = os.path.join(os.path.dirname(conn_mod.__file__), "config.yml")
+        with open(config_filename, "r") as config_file:
+            config_data = yaml.load(config_file)
+            return cls(**config_data)
 
 
 class Connector(object):
@@ -35,6 +52,21 @@ class Connector(object):
                 log.warning(
                     f"{connector.name} unavailable -- probable initialization error"
                 )
+
+    @property
+    @lru_cache()
+    def config(self):
+        if self.konfig:
+            try:
+                return self.konfig.from_file()
+            except yaml.YAMLError as e:
+                log.exception(f"{self.name} couldn't parse config")
+                raise e
+            except IOError as e:
+                log.exception(f"{self.name} couldn't read config, trying default")
+                return self.konfig()
+        else:
+            log.warn(f"config requested for a connector that doesn't have any")
 
     @property
     def name(self):

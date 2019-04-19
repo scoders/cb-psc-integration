@@ -6,24 +6,25 @@ from base64 import b64encode
 
 import yara
 
-from cb.psc.integration.connector import Connector
+from cb.psc.integration.connector import Connector, ConnectorConfig
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
 
+class YaraConfig(ConnectorConfig):
+    rules_directory: str = os.path.join(os.path.dirname(__file__), "yara_rules")
+    error_on_warning: bool = True
+    includes: bool = True
+    timeout: int = 60
+    default_score: int = 100
+
+
 class YaraConnector(Connector):
     name = "yara"
-    # TODO(ww): Provide an API for connector configs.
-    # TODO(ww): Rule caching.
-    config = {
-        "rules_directory": os.path.join(os.path.dirname(__file__), "yara_rules"),
-        "error_on_warning": True,
-        "includes": True,
-        "timeout": 60,
-        "default_score": 100,
-    }
+    konfig = YaraConfig
 
+    # TODO(ww): Compiled rule caching.
     @property
     @lru_cache()
     def yara_rules(self):
@@ -31,7 +32,7 @@ class YaraConnector(Connector):
         # because yara.Rules objects cannot be pickled.
         log.debug("compiling YARA rules")
         rule_map = {}
-        for entry in os.scandir(self.config["rules_directory"]):
+        for entry in os.scandir(self.config.rules_directory):
             if not entry.is_file():
                 continue
             rule_map[Path(entry.name).stem] = entry.path
@@ -41,8 +42,8 @@ class YaraConnector(Connector):
         try:
             return yara.compile(
                 filepaths=rule_map,
-                error_on_warning=self.config["error_on_warning"],
-                includes=self.config["includes"],
+                error_on_warning=self.config.error_on_warning,
+                includes=self.config.includes,
             )
         except yara.YaraError as e:
             log.error(f"couldn't compile YARA rules: {e}")
@@ -51,7 +52,7 @@ class YaraConnector(Connector):
 
     def analyze(self, binary, data):
         try:
-            matches = self.yara_rules.match(data=data, timeout=self.config["timeout"])
+            matches = self.yara_rules.match(data=data, timeout=self.config.timeout)
         except yara.TimeoutError:
             log.warning(f"{self.name} timed out while analyzing {binary.sha256}")
             return self.result(binary, analysis_name="timeout", error=True)
@@ -76,7 +77,7 @@ class YaraConnector(Connector):
             analysis_name = f"{match.namespace}:{match.rule}"
             score = match.meta.get("score")
             if score is None:
-                score = self.config["default_score"]
+                score = self.config.default_score
                 log.warning(
                     f"{analysis_name} does not provide a score, using default score ({score})"
                 )
