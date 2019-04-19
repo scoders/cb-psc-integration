@@ -63,7 +63,7 @@ class Connector(object):
                 log.exception(f"{self.name} couldn't parse config")
                 raise e
             except IOError as e:
-                log.exception(f"{self.name} couldn't read config, trying default")
+                log.warning(f"{self.name} couldn't read config, trying default")
                 return self.konfig()
         else:
             log.warn(f"config requested for a connector that doesn't have any")
