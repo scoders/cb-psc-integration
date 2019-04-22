@@ -14,25 +14,10 @@ log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
 
-def config(konfig):
-    # NOTE(ww): This is a little silly: I didn't want
-    # connector authors to have to remember @dataclass
-    # or subclassing, so this decorator just handles
-    # both.
-    @dataclass
-    class Config(konfig, ConnectorConfig):
-        def __init__(self, *args, **kwargs):
-            super().__init__(*args, **kwargs)
-        # NOTE(ww): In theory, it should be possible to
-        # have the config decorator take a connector
-        # parameter and use it to set connector.konfig,
-        # but there's something weird happening in module
-        # resolution during pickling that's stopping that.
-    return Config
-
-
-@dataclass
 class ConnectorConfig:
+    def __init_subclass__(cls, *args, **kwargs):
+        return dataclass(cls)
+
     @classmethod
     def from_file(cls):
         log.debug(f"loading config from file for {cls.__name__}")

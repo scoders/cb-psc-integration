@@ -6,14 +6,13 @@ from base64 import b64encode
 
 import yara
 
-from cb.psc.integration.connector import Connector, config
+from cb.psc.integration.connector import Connector, ConnectorConfig
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
 
-@config
-class YaraConfig:
+class YaraConfig(ConnectorConfig):
     rules_directory: str = os.path.join(os.path.dirname(__file__), "yara_rules")
     error_on_warning: bool = True
     includes: bool = True
