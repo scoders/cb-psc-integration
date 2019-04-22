@@ -34,8 +34,13 @@ cb = cbth.CbThreatHunterAPI(profile=config.cbth_profile)
 
 def download_binary(hash, url):
     log.info(f"downloading binary {hash} from {url}")
-    # TODO(ww): Exception handling.
     resp = requests.get(url, stream=True, timeout=config.binary_timeout)
+
+    # TODO(ww): Support re-trying the download?
+    if not resp.status_code == requests.codes.ok:
+        log.error(f"download failed for {hash}: {resp.status_code}")
+        resp.raise_for_status()
+
     redis.set(f"/binaries/{hash}", resp.raw.read())
 
     binary = Binary.from_hash(hash)
