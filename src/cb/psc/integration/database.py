@@ -10,7 +10,7 @@ from sqlalchemy.exc import DatabaseError
 from cb.psc.integration.config import config
 
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(config.loglevel)
 
 engine = create_engine(config.database)
 session = scoped_session(sessionmaker(bind=engine))

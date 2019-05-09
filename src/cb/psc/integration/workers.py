@@ -27,7 +27,7 @@ binary_analysis = Queue("binary_analysis", connection=redis)
 binary_cleanup = Queue("binary_cleanup", connection=redis)
 
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(config.loglevel)
 
 cb = cbth.CbThreatHunterAPI(profile=config.cbth_profile)
 

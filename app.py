@@ -6,7 +6,6 @@ from cb.psc.integration.config import config
 import cb.psc.integration.database as database
 import cb.psc.integration.workers as workers
 
-logging.basicConfig()
 log = logging.getLogger()
 log.setLevel(config.loglevel)
 
@@ -80,7 +79,7 @@ def analysis():
 
 def main():
     database.init_db()
-    app.run(host=config.flask_host, port=config.flask_port)
+    app.run(host=config.flask_host, port=config.flask_port, debug=config.is_development)
 
 
 if __name__ == "__main__":

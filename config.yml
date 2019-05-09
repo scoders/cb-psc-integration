@@ -1,0 +1,3 @@
+loglevel: DEBUG
+cbth_profile: default
+database: sqlite:////tmp/psc.db

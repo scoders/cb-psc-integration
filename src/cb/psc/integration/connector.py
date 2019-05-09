@@ -7,11 +7,12 @@ import importlib
 from rq import get_current_job
 import yaml
 
+from .config import config
 from .database import AnalysisResult
 import cb.psc.integration.workers as workers
 
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(config.loglevel)
 
 
 class ConnectorConfig:
