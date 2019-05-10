@@ -122,8 +122,6 @@ def analyze_binary(hash):
     for conn in connector.connectors():
         log.debug(f"running {conn.name} analysis")
         binary_analysis.enqueue(conn._analyze, binary)
-        # TODO(ww): Need to track all analyses and
-        # evict the binary from redis once all are done.
 
 
 def flush_binary(binary):
