@@ -2,8 +2,11 @@
 all:
 	@echo "Run my targets individually!"
 
+prep: logs
+	mkdir -p logs/
+
 .PHONY: serve
-serve:
+serve: prep
 	supervisord -n
 
 .PHONY: clean
