@@ -9,7 +9,7 @@ This repository contains two components: the binary analysis sandbox and the con
 
 ### Dependencies
 
-You'll need `redis-server` and everything inside `setup.py`.
+You'll need Python 3.6+, `redis-server`, and everything inside `setup.py`.
 
 ### Running the binary analysis sandbox
 
