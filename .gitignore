@@ -108,3 +108,6 @@ venv.bak/
 
 # Logs
 logs/
+
+# Documentation builds
+docs/build/

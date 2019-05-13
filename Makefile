@@ -12,3 +12,8 @@ serve: prep
 .PHONY: clean
 clean:
 	rm -f dump.rdb logs/*
+	rm -rf docs/build/*
+
+.PHONY: docs
+docs:
+	PYTHONPATH=src/ sphinx-build -b html docs/source/ docs/build/html

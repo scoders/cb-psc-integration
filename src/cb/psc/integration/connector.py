@@ -16,11 +16,21 @@ log.setLevel(config.loglevel)
 
 
 class ConnectorConfig:
+    """
+    The parent class for per-connector configuration.
+
+    Individual connectors should assign their `konfig` property to a subclass
+    of ConnectorConfig.
+    """
     def __init_subclass__(cls, *args, **kwargs):
         return dataclass(cls)
 
     @classmethod
     def from_file(cls):
+        """
+        Loads an instance of this class from a `config.yml` file relative to
+        the corresponding connector's source directory.
+        """
         log.debug(f"loading config from file for {cls.__name__}")
         # NOTE(ww): __file__ here refers to the base config file, so we need
         # to grab the module and resolve the file from there.
@@ -33,6 +43,10 @@ class ConnectorConfig:
 
 
 class Connector(object):
+    """
+    The parent class for all connectors. Custom connectors should
+    inherit from this and override the appropriate methods.
+    """
     _instance = None
     available = True
 
@@ -44,24 +58,38 @@ class Connector(object):
 
     @classmethod
     def instance(cls):
+        """
+        Returns this connector's singleton.
+
+        :return: The singleton instance of this connector
+        :rtype: :py:class:`Connector`
+        """
         if cls._instance is None:
             cls()
         return cls._instance
 
     @classmethod
     def connectors(cls):
+        """
+        Yields each known connector that's currently available.
+
+        :rtype: Iterator[:class:`Connector`]
+        """
         for konnector in cls.__subclasses__():
             connector = konnector.instance()
             if connector.available:
                 yield connector
             else:
                 log.warning(
-                    f"{connector.name} unavailable -- probable initialization error"
+                    f"{connector.name} unavailable: probable initialization error"
                 )
 
     @property
     @lru_cache()
     def config(self):
+        """
+        Returns the configuration associated with this connector.
+        """
         if self.konfig:
             try:
                 return self.konfig.from_file()
@@ -76,9 +104,31 @@ class Connector(object):
 
     @property
     def name(self):
+        """
+        Returns this connector's name. Connector names should be unique.
+
+        :rtype: str
+
+        Example::
+
+        >>> names = [conn.name for conn in Connector.connectors()]
+        """
         return self.__class__.__name__.lower()
 
     def result(self, binary, **kwargs):
+        """
+        Returns a new AnalysisResult with the given fields populated, updating
+        the database in the background.
+
+        This should be used within the :py:meth:`analyze` method to create
+        analysis results.
+
+        :rtype: :py:class:`AnalysisResult`
+
+        Example::
+
+        >>> self.result(analysis_name="foo", score=50, payload={})
+        """
         job = get_current_job()
         return AnalysisResult.create(
             **kwargs, sha256=binary.sha256, connector_name=self.name, job_id=job.id
@@ -98,6 +148,12 @@ class Connector(object):
         return result
 
     def analyze(self, binary, data):
+        """
+        Overridden by individual connectors; called whenever a binary is ready to be
+        analyzed.
+
+        May return either a single :py:class:`AnalysisResult` or a list of results.
+        """
         log.warning("analyze() called on top-level Connector")
 
 

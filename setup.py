@@ -29,6 +29,7 @@ setup(
         "requests",
         "rq",
         "supervisor @ git+https://github.com/Supervisor/supervisor",
+        "Sphinx",
         "SQLAlchemy",
     ],
 )
