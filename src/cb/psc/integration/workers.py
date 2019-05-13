@@ -33,6 +33,9 @@ cb = cbth.CbThreatHunterAPI(profile=config.cbth_profile)
 
 
 def download_binary(hash, url):
+    """
+    Downloads the binary with the given hash from the given (UBS-supplied) URL.
+    """
     log.info(f"downloading binary {hash} from {url}")
     resp = requests.get(url, stream=True, timeout=config.binary_timeout)
 
@@ -52,6 +55,10 @@ def download_binary(hash, url):
 
 # TODO(ww): Probably belongs in another file
 def filter_available(hashes):
+    """
+    Given a list of hashes, returns the ones that are currently
+    available within the binary cache.
+    """
     results = (
         session.query(Binary.sha256)
         .filter((Binary.sha256.in_(hashes)) & (Binary.available))
@@ -69,6 +76,10 @@ def filter_available(hashes):
 
 
 def fetch_binaries(hashes):
+    """
+    Attempts to retrieve and analyze each of binaries corresponding
+    to the given hashes.
+    """
     log.debug(f"fetch_binaries: {len(hashes)} hashes")
     hashes = filter_available(hashes)
 
@@ -114,6 +125,9 @@ def active_analyses():
 
 
 def analyze_binary(hash):
+    """
+    Enqueues the binary corresponding to the given hash for analysis by all connectors.
+    """
     log.debug(f"analyzing binary: {hash}")
 
     binary = Binary.from_hash(hash)
@@ -125,6 +139,9 @@ def analyze_binary(hash):
 
 
 def flush_binary(binary):
+    """
+    Flushes the binary corresponding to the given hash from the binary cache.
+    """
     log.debug(f"flush_binary: {binary.sha256}")
 
     refcount = int(redis.get(binary.count_key))
@@ -140,6 +157,9 @@ def flush_binary(binary):
 
 
 def load_connectors():
+    """
+    Loads all connectors from all configured connector directories.
+    """
     log.debug("loading connectors")
     for path in config.connector_dirs:
         if not os.path.isdir(path):
