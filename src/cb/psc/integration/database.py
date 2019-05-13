@@ -51,13 +51,27 @@ class Base(object):
 
 
 class Binary(Base):
+    """
+    Represents a binary that has been (or will be) visited by the connectors.
+    """
     __tablename__ = "binaries"
 
     sha256 = Column(String(64), unique=True, nullable=False)
+    """
+    The SHA256 hash of the binary.
+    """
+
     available = Column(Boolean, default=False)
+    """
+    Whether or not the binary is currently available in the cache.
+    """
 
     @classmethod
     def from_hash(cls, hash):
+        """
+        Returns the binary associated with the given hash if available in the
+        cache, or None if unavailable.
+        """
         return cls.query.filter(cls.sha256 == hash).one_or_none()
 
     @property
@@ -72,6 +86,8 @@ class Binary(Base):
 class AnalysisResult(Base):
     """
     Models the result of an analysis performed by a connector.
+
+    Use :py:meth:`Connector.result` to create these models.
     """
 
     __tablename__ = "results"
@@ -81,30 +97,79 @@ class AnalysisResult(Base):
         ),
     )
 
-    # The hash of the analyzed binary.
     sha256 = Column(String(64), nullable=False)
+    """
+    The SHA256 hash of the analyzed binary.
 
-    # The name of the connector that this analysis originated from.
+    :rtype: str
+    """
+
     connector_name = Column(String(64), nullable=False)
+    """
+    The name of the connector that this analysis originated from.
 
-    # The name of the analysis pass.
+    :rtype: str
+    """
+
     analysis_name = Column(String(64), nullable=False)
+    """
+    The name of the analysis pass.
 
-    # The score assigned to this binary by the analysis pass.
+    :rtype: str
+    """
+
     score = Column(Integer, default=0)
+    """
+    The score assigned to this binary by the analysis pass.
 
-    # Whether the analysis failed.
+    Default: 0
+
+    :rtype: int
+    """
+
     error = Column(Boolean, default=False)
+    """
+    Whether the analysis failed.
 
-    # When the analysis was performed.
+    Default: False
+
+    :rtype: bool
+    """
+
     scan_time = Column(DateTime, default=datetime.utcnow, nullable=False)
+    """
+    When the analysis was performed.
 
-    # An optional JSON payload produced by the analysis.
+    Default: :py:meth:`datetime.utcnow`
+
+    :rtype: :py:class:`DateTime`
+    """
+
     payload = Column(JSON, default={}, nullable=False)
+    """
+    An optional JSON payload produced by the analysis.
 
-    # The ID of the job that ran the analysis.
+    Default: `{}`
+
+    :rtype: dict
+    """
+
     job_id = Column(String(36), nullable=False)
+    """
+    The ID of the job that ran the analysis.
+
+    :rtype: str
+    """
 
     @property
     def binary(self):
+        """
+        Returns the :py:class:`database.Binary` associated with this result.
+
+        :rtype: :py:class:`database.Binary`.
+
+        Example::
+
+        >>> result.binary.sha256 == result.sha256
+        """
         return Binary.from_hash(self.sha256)

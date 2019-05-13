@@ -20,7 +20,7 @@ class ConnectorConfig:
     The parent class for per-connector configuration.
 
     Individual connectors should assign their `konfig` property to a subclass
-    of ConnectorConfig.
+    of :py:class:`ConnectorConfig`.
     """
     def __init_subclass__(cls, *args, **kwargs):
         return dataclass(cls)
