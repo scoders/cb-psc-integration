@@ -10,23 +10,75 @@ log.setLevel(logging.DEBUG)
 
 
 class Config(NamedTuple):
+    """
+    The primary source of configuration for the binary analysis sandbox.
+
+    Each connector has its own, unrelated, configuration object.
+    """
+
     environment: str = "production"
+    """
+    The kind of running environment.
+    """
+
     loglevel: str = "INFO"
+    """
+    The :py:mod:`logging` loglevel to use.
+    """
+
     cbth_profile: str = "default"
+    """
+    The credential profile to use when interacting with CBAPI/cbapi-python.
+    """
+
     database: str = "sqlite:////usr/share/cb/psc.db"
+    """
+    The protocol and path to use for the result DB.
+    """
+
     flask_host: str = "localhost"
+    """
+    The hostname for the flask frontend.
+    """
+
     flask_port: int = 5000
+    """
+    The port for the flask frontend.
+    """
+
     redis_host: str = "localhost"
+    """
+    The hostname for the redis cache.
+    """
+
     redis_port: int = 6379
+    """
+    The port for the redis cache.
+    """
+
     binary_timeout: Optional[int] = 60  # TODO(ww): Maybe default to None?
+    """
+    The maximum time allotted to each binary analysis task, or 0
+    if no timeout.
+    """
+
     connector_dirs: List[str] = ["/usr/share/cb/integrations"]
+    """
+    A list of directories to search for connectors.
+    """
 
     @property
     def is_development(self):
+        """
+        Returns true if the environment is a development environment.
+        """
         return self.environment == "development"
 
     @classmethod
     def development(cls):
+        """
+        Returns a default configuration for a development environment.
+        """
         return cls(
             environment="development",
             loglevel="DEBUG",
@@ -42,10 +94,17 @@ class Config(NamedTuple):
 
     @classmethod
     def production(cls):
+        """
+        Returns a default configuration for a production environment.
+        """
         return cls()
 
     @classmethod
     def load(cls):
+        """
+        Creates a :py:class:`Config` object from a `config.yml` file present
+        at the root of the binary analysis SDK's source tree.
+        """
         if os.getenv("ENVIRONMENT") == "development":
             log.info("ENVIRONMENT=development set, using default development config")
             return cls.development()
