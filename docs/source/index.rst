@@ -12,6 +12,7 @@ Welcome to cb-psc-integration's documentation!
 
    running-the-sandbox
    connector-api
+   rest-api
 
 
 Indices and tables
