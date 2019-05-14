@@ -52,17 +52,37 @@ def retrieve_analyses(req):
 def remove_analyses(req):
     # TODO(ww): Remove analyses by hash, by connector name, by job ID
     log.debug(f"remove_analyses: {req}")
-    hashes = req.get("hashes")
 
-    if not isinstance(hashes, list) or len(hashes) < 1:
-        abort(400)
+    kind = req.get("kind")
+    items = req.get("items")
 
-    # TODO(ww): Probably not very efficient, doing
-    # this on the __table__ would probably be a bit
-    # faster.
-    database.AnalysisResult.query.filter(
-        database.AnalysisResult.sha256.in_(hashes)
-    ).delete(synchronize_session=False)
+    if not isinstance(items, list):
+        return jsonify(success=False, message="Expected items to be a list")
+
+    # TODO(ww): Could parameterize this to de-duplicate.
+    if kind == "hashes":
+        # TODO(ww): Probably not very efficient, doing
+        # this on the __table__ would probably be a bit
+        # faster.
+        results = database.AnalysisResult.query.filter(
+            database.AnalysisResult.sha256.in_(items)
+        )
+    elif kind == "connector_names":
+        results = database.AnalysisResult.query.filter(
+            database.AnalysisResult.connector_name.in_(items)
+        )
+    elif kind == "analysis_names":
+        results = database.AnalysisResult.query.filter(
+            database.AnalysisResult.analysis_name.in_(items)
+        )
+    elif kind == "job_ids":
+        results = database.AnalysisResult.query.filter(
+            database.AnalysisResult.job_id.in_(items)
+        )
+    else:
+        return jsonify(success=False, message="Unknown removal kind")
+
+    results.delete(synchronize_session=False)
 
     return jsonify(success=True)
 
