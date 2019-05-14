@@ -10,6 +10,7 @@ Welcome to cb-psc-integration's documentation!
    :maxdepth: 2
    :caption: Contents:
 
+   running-the-sandbox
    connector-api
 
 
