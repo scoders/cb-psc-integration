@@ -109,7 +109,7 @@ Which yields something like this:
 Observe that the members of each binary under the ``completed`` object reflect the members
 documented for :py:class:`AnalysisResult` objects.
 
-The ``pending`` list contains the ``job_id``s of any analyses hadn't completed
+The ``pending`` list contains the ``job_id`` of any analyses hadn't completed
 as of the request.
 
 Deleting results
