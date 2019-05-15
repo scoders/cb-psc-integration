@@ -122,10 +122,13 @@ Like the other endpoints, this has a JSON payload:
 .. code-block:: json
 
     {
-        "hashes": []
+        "kind": "kind",
+        "items": []
     }
 
-Where ``hashes`` is the list of binary hashes whose results should be removed.
+Where ``kind`` is one of ``hashes``, ``connector_names``, ``analysis_names``, or ``job_ids``
+and ``items`` is a list of strings that should be matched against each ``kind`` for each
+result.
 
 Future iterations of this endpoint will also allow connector names, analysis names, and
 job IDs as alternative deletion filters.
