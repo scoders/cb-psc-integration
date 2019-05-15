@@ -61,27 +61,20 @@ def remove_analyses(req):
 
     # TODO(ww): Could parameterize this to de-duplicate.
     if kind == "hashes":
-        # TODO(ww): Probably not very efficient, doing
-        # this on the __table__ would probably be a bit
-        # faster.
-        results = database.AnalysisResult.query.filter(
-            database.AnalysisResult.sha256.in_(items)
-        )
+        query = database.AnalysisResult.sha256.in_(items)
     elif kind == "connector_names":
-        results = database.AnalysisResult.query.filter(
-            database.AnalysisResult.connector_name.in_(items)
-        )
+        query = database.AnalysisResult.connector_name.in_(items)
     elif kind == "analysis_names":
-        results = database.AnalysisResult.query.filter(
-            database.AnalysisResult.analysis_name.in_(items)
-        )
+        query = database.AnalysisResult.analysis_name.in_(items)
     elif kind == "job_ids":
-        results = database.AnalysisResult.query.filter(
-            database.AnalysisResult.job_id.in_(items)
-        )
+        query = database.AnalysisResult.job_id.in_(items)
     else:
         return jsonify(success=False, message="Unknown removal kind")
 
+    # TODO(ww): Probably not very efficient, doing
+    # this on the __table__ would probably be a bit
+    # faster.
+    results = database.AnalysisResult.query.filter(query)
     results.delete(synchronize_session=False)
 
     return jsonify(success=True)
