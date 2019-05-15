@@ -8,7 +8,7 @@ Installing the Sandbox
 
 The steps below document the sandbox's installation *for development or local testing purposes*.
 
-Start by installing some dependencies: you'll need ``redis-server`` and Python 3.6 or later.
+Start by installing some dependencies: you'll need ``redis-server`` and Python 3.7 or later.
 
 For systems with ``apt``:
 
