@@ -54,6 +54,7 @@ class Binary(Base):
     """
     Represents a binary that has been (or will be) visited by the connectors.
     """
+
     __tablename__ = "binaries"
 
     sha256 = Column(String(64), unique=True, nullable=False)

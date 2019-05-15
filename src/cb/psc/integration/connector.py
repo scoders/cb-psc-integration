@@ -22,6 +22,7 @@ class ConnectorConfig:
     Individual connectors should assign their `konfig` property to a subclass
     of :py:class:`ConnectorConfig`.
     """
+
     def __init_subclass__(cls, *args, **kwargs):
         return dataclass(cls)
 
@@ -47,6 +48,7 @@ class Connector(object):
     The parent class for all connectors. Custom connectors should
     inherit from this and override the appropriate methods.
     """
+
     _instance = None
     available = True
 

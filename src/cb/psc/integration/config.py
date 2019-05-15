@@ -109,7 +109,9 @@ class Config(NamedTuple):
             log.info("ENVIRONMENT=development set, using default development config")
             return cls.development()
 
-        config_filename = os.path.join(os.path.dirname(__file__), "../../../../config.yml")
+        config_filename = os.path.join(
+            os.path.dirname(__file__), "../../../../config.yml"
+        )
         if not os.path.isfile(config_filename):
             log.warning("no config file found, using default production config")
             return cls.production()
