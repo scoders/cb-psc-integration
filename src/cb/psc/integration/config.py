@@ -62,6 +62,12 @@ class Config(NamedTuple):
     if no timeout.
     """
 
+    binary_fetch_max_retry: Optional[int] = 3
+    """
+    The maximum number of times to attempt retrieval of a binary from the UBS
+    before failing.
+    """
+
     connector_dirs: List[str] = ["/usr/share/cb/integrations"]
     """
     A list of directories to search for connectors.

@@ -32,17 +32,20 @@ log.setLevel(config.loglevel)
 cb = cbth.CbThreatHunterAPI(profile=config.cbth_profile)
 
 
-def download_binary(hash, url):
+def download_binary(hash, url, *, retry):
     """
     Downloads the binary with the given hash from the given (UBS-supplied) URL.
     """
     log.info(f"downloading binary {hash} from {url}")
     resp = requests.get(url, stream=True, timeout=config.binary_timeout)
 
-    # TODO(ww): Support re-trying the download?
     if not resp.status_code == requests.codes.ok:
-        log.error(f"download failed for {hash}: {resp.status_code}")
-        resp.raise_for_status()
+        if resp.status_code == 404 and retry > 0:
+            log.warning(f"download 404'd for {hash}, retrying ({retry - 1} remaining)")
+            binary_retrieval.enqueue(download_binary, hash, url, retry=retry - 1)
+        else:
+            log.error(f"download failed for {hash}: {resp.status_code}")
+            resp.raise_for_status()
 
     redis.set(f"/binaries/{hash}", resp.raw.read())
 
@@ -98,7 +101,9 @@ def fetch_binaries(hashes):
         return
 
     for found in downloads.found:
-        download = binary_retrieval.enqueue(download_binary, found.sha256, found.url)
+        download = binary_retrieval.enqueue(
+            download_binary, found.sha256, found.url, retry=config.binary_fetch_max_retry
+        )
         binary_analysis.enqueue(analyze_binary, found.sha256, depends_on=download)
 
     if len(downloads.error) > 0:
@@ -114,10 +119,7 @@ def active_analyses():
     Returns a list of job IDs corresponding to active (pending or running)
     analysis tasks.
     """
-    # TODO(ww): Use this once fetch_many makes it into an rq release.
-    # jobs = Job.fetch_many(binary_analysis.job_ids, connection=redis)
-    pending_jobs = [Job.fetch(job_id) for job_id in binary_analysis.job_ids]
-
+    pending_jobs = Job.fetch_many(binary_analysis.job_ids, connection=redis)
     pending_ids = [job.id for job in pending_jobs if job.func_name != "analyze_binary"]
     started = StartedJobRegistry("binary_analysis", connection=redis)
 
