@@ -1,11 +1,12 @@
-from datetime import datetime
 import logging
+from datetime import datetime
 
-from sqlalchemy import Column, Integer, String, DateTime, Boolean, JSON, create_engine
+from sqlalchemy import (JSON, Boolean, Column, DateTime, Integer, String,
+                        create_engine)
+from sqlalchemy.exc import DatabaseError
 from sqlalchemy.ext.declarative import as_declarative
 from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.schema import UniqueConstraint
-from sqlalchemy.exc import DatabaseError
 
 from cb.psc.integration.config import config
 

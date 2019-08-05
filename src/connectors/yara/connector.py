@@ -1,11 +1,10 @@
 import logging
 import os
-from pathlib import Path
-from functools import lru_cache
 from base64 import b64encode
+from functools import lru_cache
+from pathlib import Path
 
 import yara
-
 from cb.psc.integration.connector import Connector, ConnectorConfig
 
 log = logging.getLogger(__name__)

@@ -1,6 +1,6 @@
 import logging
-from typing import List, Optional, NamedTuple
 import os
+from typing import List, NamedTuple, Optional
 
 import yaml
 

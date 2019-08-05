@@ -2,7 +2,10 @@ import logging
 
 from flask import Flask, abort, request, jsonify
 
+import cbapi.psc.threathunter as threathunter
+
 from cb.psc.integration.config import config
+from cb.psc.integration.utils import cbth
 import cb.psc.integration.database as database
 import cb.psc.integration.workers as workers
 
@@ -23,15 +26,38 @@ def analyze():
     req = request.get_json(force=True)
     log.debug(f"/analyze: {req!r}")
 
-    hashes = req.get("hashes")
-
-    if not isinstance(hashes, list) or len(hashes) < 1:
+    if "hashes" in req:
+        hashes = req.get("hashes")
+        if not isinstance(hashes, list) or len(hashes) < 1:
+            abort(400)
+        workers.binary_retrieval.enqueue(workers.fetch_binaries, hashes)
+        log.debug(f"enqueued retrieval of {len(hashes)} binaries")
+    elif "query" in req:
+        enqueue_hashes_from_query(req.get("query"))
+        if hashes is None:
+            abort(400)
+    else:
         abort(400)
 
-    workers.binary_retrieval.enqueue(workers.fetch_binaries, hashes)
-    log.debug(f"enqueued retrieval of {len(hashes)} binaries")
-
     return jsonify(success=True)
+
+
+def enqueue_hashes_from_query(query):
+    if not isinstance(query, str):
+        return
+    try:
+        processes = cbth().select(threathunter.Process).where(query)
+        for process in processes:
+            if process.process_sha256:
+                # TODO(ww): CbTH returns processes in pages; we can probably chunk
+                # our enqueueing here.
+                workers.binary_retrieval.enqueue(workers.fetch_binaries, [process.process_sha256])
+            else:
+                # TODO(ww): Log.
+                pass
+    except Exception as e:  # noqa
+        # TODO(ww): Log this.
+        return
 
 
 def retrieve_analyses(req):

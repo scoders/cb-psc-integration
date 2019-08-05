@@ -1,19 +1,19 @@
+import importlib.util
 import logging
 import os.path
-import importlib.util
 import sys
 
-import redis as r
-from rq import Worker, Queue, Connection
-from rq.job import Job
-from rq.registry import StartedJobRegistry
 import requests
 
-import cbapi.psc.threathunter as cbth
-
-from cb.psc.integration.config import config
-from cb.psc.integration.database import session, Binary
 import cb.psc.integration.connector as connector
+import cbapi.psc.threathunter as threathunter
+import redis as r
+from cb.psc.integration.config import config
+from cb.psc.integration.database import Binary, session
+from cb.psc.integration.utils import cbth
+from rq import Connection, Queue, Worker
+from rq.job import Job
+from rq.registry import StartedJobRegistry
 
 logging.basicConfig()
 log = logging.getLogger()
@@ -28,8 +28,6 @@ binary_cleanup = Queue("binary_cleanup", connection=redis)
 
 log = logging.getLogger(__name__)
 log.setLevel(config.loglevel)
-
-cb = cbth.CbThreatHunterAPI(profile=config.cbth_profile)
 
 
 def download_binary(hash, url, *, retry):
@@ -80,7 +78,7 @@ def filter_available(hashes):
 
 def fetch_binaries(hashes):
     """
-    Attempts to retrieve and analyze each of binaries corresponding
+    Attempts to retrieve and analyze each of the binaries corresponding
     to the given hashes.
     """
     log.debug(f"fetch_binaries: {len(hashes)} hashes")
@@ -95,9 +93,9 @@ def fetch_binaries(hashes):
     #    URLs from the PSC UBS API.
     #  * We enqueue each available binary for downloading + caching in redis.
     try:
-        downloads = cb.select(cbth.Downloads, hashes)
+        downloads = cbth().select(threathunter.Downloads, hashes)
     except Exception as e:  # noqa
-        log.error(f"cbth responded with an error: {e}")
+        log.error(f"CbTH responded with an error: {e}")
         return
 
     for found in downloads.found:

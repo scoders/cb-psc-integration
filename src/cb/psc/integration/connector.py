@@ -1,15 +1,16 @@
-import logging
-from functools import lru_cache
-from dataclasses import dataclass
-import os
 import importlib
+import logging
+import os
+from dataclasses import dataclass
+from functools import lru_cache
 
-from rq import get_current_job
 import yaml
+
+import cb.psc.integration.workers as workers
+from rq import get_current_job
 
 from .config import config
 from .database import AnalysisResult
-import cb.psc.integration.workers as workers
 
 log = logging.getLogger(__name__)
 log.setLevel(config.loglevel)
