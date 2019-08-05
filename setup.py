@@ -30,5 +30,6 @@ setup(
         "supervisor == 4.0.4",
         "Sphinx",
         "SQLAlchemy",
+        "yara-python",
     ],
 )
