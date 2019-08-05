@@ -1,8 +1,7 @@
 import logging
 from datetime import datetime
 
-from sqlalchemy import (JSON, Boolean, Column, DateTime, Integer, String,
-                        create_engine)
+from sqlalchemy import JSON, Boolean, Column, DateTime, Integer, String, create_engine
 from sqlalchemy.exc import DatabaseError
 from sqlalchemy.ext.declarative import as_declarative
 from sqlalchemy.orm import scoped_session, sessionmaker
