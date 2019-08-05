@@ -21,8 +21,7 @@ setup(
         "Topic :: Software Development :: Libraries :: Python Modules",
     ],
     install_requires=[
-        # TODO(ww): Replace with stable version once merged and released.
-        "cbapi == 1.5.0",
+        "cbapi == 1.5.1",
         "Flask",
         "pyyaml",
         "redis",
