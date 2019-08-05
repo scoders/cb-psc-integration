@@ -22,13 +22,13 @@ setup(
     ],
     install_requires=[
         # TODO(ww): Replace with stable version once merged and released.
-        "cbapi @ git+ssh://git@github.com/trailofbits/cbapi-python@tob-cbth-binaries#egg=cbapi",
+        "cbapi == 1.5.0",
         "Flask",
         "pyyaml",
         "redis",
         "requests",
-        "rq",
-        "supervisor @ git+https://github.com/Supervisor/supervisor",
+        "rq == 1.1.0",
+        "supervisor == 4.0.4",
         "Sphinx",
         "SQLAlchemy",
     ],
