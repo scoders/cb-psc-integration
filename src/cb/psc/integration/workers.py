@@ -60,11 +60,7 @@ def filter_available(hashes):
     Given a list of hashes, returns the ones that are currently
     available within the binary cache.
     """
-    results = (
-        session.query(Binary.sha256)
-        .filter((Binary.sha256.in_(hashes)) & (Binary.available))
-        .all()
-    )
+    results = session.query(Binary.sha256).filter((Binary.sha256.in_(hashes)) & (Binary.available)).all()
 
     # TODO(ww): This is a little silly. Is there a right
     # way to get just a list, and not a list of tuples,
@@ -100,10 +96,7 @@ def fetch_binaries(hashes):
 
     for found in downloads.found:
         download = binary_retrieval.enqueue(
-            download_binary,
-            found.sha256,
-            found.url,
-            retry=config.binary_fetch_max_retry,
+            download_binary, found.sha256, found.url, retry=config.binary_fetch_max_retry
         )
         binary_analysis.enqueue(analyze_binary, found.sha256, depends_on=download)
 

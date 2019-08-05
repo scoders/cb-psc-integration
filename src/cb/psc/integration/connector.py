@@ -83,9 +83,7 @@ class Connector(object):
             if connector.available:
                 yield connector
             else:
-                log.warning(
-                    f"{connector.name} unavailable: probable initialization error"
-                )
+                log.warning(f"{connector.name} unavailable: probable initialization error")
 
     @property
     @lru_cache()
@@ -133,9 +131,7 @@ class Connector(object):
         >>> self.result(analysis_name="foo", score=50, payload={})
         """
         job = get_current_job()
-        return AnalysisResult.create(
-            **kwargs, sha256=binary.sha256, connector_name=self.name, job_id=job.id
-        )
+        return AnalysisResult.create(**kwargs, sha256=binary.sha256, connector_name=self.name, job_id=job.id)
 
     def _analyze(self, binary):
         log.info(f"{self.name}: analyzing binary {binary.sha256}")
