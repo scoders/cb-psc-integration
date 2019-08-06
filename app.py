@@ -33,31 +33,11 @@ def analyze():
         workers.binary_retrieval.enqueue(workers.fetch_binaries, hashes)
         log.debug(f"enqueued retrieval of {len(hashes)} binaries")
     elif "query" in req:
-        enqueue_hashes_from_query(req.get("query"))
-        if hashes is None:
-            abort(400)
+        workers.binary_retrieval.enqueue(workers.fetch_query, req.get("query"), limit=req.get("limit"))
     else:
         abort(400)
 
     return jsonify(success=True)
-
-
-def enqueue_hashes_from_query(query):
-    if not isinstance(query, str):
-        return
-    try:
-        processes = cbth().select(threathunter.Process).where(query)
-        for process in processes:
-            if process.process_sha256:
-                # TODO(ww): CbTH returns processes in pages; we can probably chunk
-                # our enqueueing here.
-                workers.binary_retrieval.enqueue(workers.fetch_binaries, [process.process_sha256])
-            else:
-                # TODO(ww): Log.
-                pass
-    except Exception as e:  # noqa
-        # TODO(ww): Log this.
-        return
 
 
 def retrieve_analyses(req):

@@ -10,7 +10,7 @@ import cbapi.psc.threathunter as threathunter
 import redis as r
 from cb.psc.integration.config import config
 from cb.psc.integration.database import Binary, session
-from cb.psc.integration.utils import cbth
+from cb.psc.integration.utils import cbth, grouper
 from rq import Connection, Queue, Worker
 from rq.job import Job
 from rq.registry import StartedJobRegistry
@@ -70,6 +70,29 @@ def filter_available(hashes):
     log.debug(f"available hashes: {available_hashes}")
 
     return list(set(hashes) - set(available_hashes))
+
+
+def fetch_query(query, limit=None):
+    """
+    Attempts to retrieve and analyze each of the binaries corresponding
+    to the given CbTH query.
+    """
+    log.debug(f"fetch_query: {query} (limit={limit})")
+
+    if not isinstance(query, str):
+        return
+
+    try:
+        processes = cbth().select(threathunter.Process).where(query)
+        if limit is not None:
+            processes = processes[0:limit]
+
+        for proc_group in grouper(processes, 10):
+            hashes = [p.process_sha256 for p in proc_group if p]
+            binary_retrieval.enqueue(fetch_binaries, hashes)
+    except Exception as e:  # noqa
+        # TODO(ww): Log this.
+        return
 
 
 def fetch_binaries(hashes):
