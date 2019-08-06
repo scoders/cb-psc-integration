@@ -1,13 +1,11 @@
 import logging
 
-from flask import Flask, abort, request, jsonify
-
-import cbapi.psc.threathunter as threathunter
-
-from cb.psc.integration.config import config
-from cb.psc.integration.utils import cbth
 import cb.psc.integration.database as database
 import cb.psc.integration.workers as workers
+import cbapi.psc.threathunter as threathunter
+from cb.psc.integration.config import config
+from cb.psc.integration.utils import cbth
+from flask import Flask, abort, jsonify, request
 
 log = logging.getLogger()
 log.setLevel(config.loglevel)
