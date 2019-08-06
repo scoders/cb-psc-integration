@@ -1,12 +1,10 @@
 import logging
 
-import cbapi.psc.threathunter as threathunter
 from flask import Flask, abort, jsonify, request
 
 import cb.psc.integration.database as database
 import cb.psc.integration.workers as workers
 from cb.psc.integration.config import config
-from cb.psc.integration.utils import cbth
 
 log = logging.getLogger()
 log.setLevel(config.loglevel)
@@ -93,6 +91,14 @@ def analysis():
         return retrieve_analyses(req)
     elif request.method == "DELETE":
         return remove_analyses(req)
+
+
+@app.route("/hashes", methods=["GET"])
+def hashes():
+    log.debug(f"/hashes: {request}")
+
+    all_results = database.Binary.query.all()
+    return jsonify([r.sha256 for r in all_results])
 
 
 def main():
