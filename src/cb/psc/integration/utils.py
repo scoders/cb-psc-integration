@@ -3,6 +3,7 @@ import logging
 from itertools import zip_longest
 
 import cbapi.psc.threathunter as threathunter
+
 from cb.psc.integration.config import config
 
 log = logging.getLogger()

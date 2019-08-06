@@ -5,6 +5,7 @@ from functools import lru_cache
 from pathlib import Path
 
 import yara
+
 from cb.psc.integration.connector import Connector, ConnectorConfig
 
 log = logging.getLogger(__name__)
