@@ -15,6 +15,7 @@ serve: prep
 clean:
 	rm -f dump.rdb logs/*
 	rm -rf docs/build/*
+	rm -f /tmp/psc.db
 
 .PHONY: docs
 docs:
