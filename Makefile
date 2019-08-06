@@ -23,5 +23,6 @@ docs:
 
 .PHONY: lint
 lint:
-	black --check $(ALL_PY_SRCS)
-	isort --check-only $(ALL_PY_SRCS)
+	black $(ALL_PY_SRCS)
+	isort $(ALL_PY_SRCS)
+	git diff --exit-code
