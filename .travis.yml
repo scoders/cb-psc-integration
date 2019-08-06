@@ -6,6 +6,5 @@ install:
   - pip install black isort
   - python setup.py install
 script:
-  - find src -name '*.py' | xargs black --check
-  - find src -name '*.py' | xargs isort --check-only
+  - make lint
   - make docs
