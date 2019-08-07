@@ -41,7 +41,9 @@ class YaraConnector(Connector):
 
         try:
             return yara.compile(
-                filepaths=rule_map, error_on_warning=self.config.error_on_warning, includes=self.config.includes
+                filepaths=rule_map,
+                error_on_warning=self.config.error_on_warning,
+                includes=self.config.includes,
             )
         except yara.YaraError as e:
             log.error(f"couldn't compile YARA rules: {e}")
@@ -64,16 +66,29 @@ class YaraConnector(Connector):
         for match in matches:
             strings = []
             for string in match.strings:
-                strings.append({"offset": string[0], "identifier": string[1], "data": b64encode(string[2]).decode()})
+                strings.append(
+                    {
+                        "offset": string[0],
+                        "identifier": string[1],
+                        "data": b64encode(string[2]).decode(),
+                    }
+                )
 
             analysis_name = f"{match.namespace}:{match.rule}"
             score = match.meta.get("score")
             if score is None:
                 score = self.config.default_score
-                log.warning(f"{analysis_name} does not provide a score, using default score ({score})")
+                log.warning(
+                    f"{analysis_name} does not provide a score, using default score ({score})"
+                )
 
             results.append(
-                self.result(binary, analysis_name=analysis_name, score=match.meta.get("score"), payload=strings)
+                self.result(
+                    binary,
+                    analysis_name=analysis_name,
+                    score=match.meta.get("score"),
+                    payload=strings,
+                )
             )
 
         return results

@@ -25,6 +25,7 @@ redis = r.Redis(host=config.redis_host, port=config.redis_port)
 binary_retrieval = Queue("binary_retrieval", connection=redis)
 binary_analysis = Queue("binary_analysis", connection=redis)
 binary_cleanup = Queue("binary_cleanup", connection=redis)
+feed_dispatch = Queue("feed_dispatch", connection=redis)
 
 log = logging.getLogger(__name__)
 log.setLevel(config.loglevel)
@@ -60,7 +61,9 @@ def filter_available(hashes):
     Given a list of hashes, returns the ones that are currently
     available within the binary cache.
     """
-    results = session.query(Binary.sha256).filter((Binary.sha256.in_(hashes)) & (Binary.available)).all()
+    results = (
+        session.query(Binary.sha256).filter((Binary.sha256.in_(hashes)) & (Binary.available)).all()
+    )
 
     # TODO(ww): This is a little silly. Is there a right
     # way to get just a list, and not a list of tuples,
@@ -162,17 +165,12 @@ def flush_binary(binary):
     Flushes the binary corresponding to the given hash from the binary cache.
     """
     log.debug(f"flush_binary: {binary.sha256}")
-
-    refcount = int(redis.get(binary.count_key))
-
-    if refcount > 0:
-        log.info(f"binary {binary.sha256} has {refcount} references remaining")
-        return
-
-    log.info(f"flushing {binary.sha256} from redis")
     redis.delete(binary.data_key, binary.count_key)
-
     binary.update(available=False)
+
+
+def dispatch_to_feed(feed_id, result):
+    log.debug(f"dispatch_to_feed: {feed_id} {result}")
 
 
 def load_connectors():

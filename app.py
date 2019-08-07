@@ -30,7 +30,9 @@ def analyze():
         workers.binary_retrieval.enqueue(workers.fetch_binaries, hashes)
         log.debug(f"enqueued retrieval of {len(hashes)} binaries")
     elif "query" in req:
-        workers.binary_retrieval.enqueue(workers.fetch_query, req.get("query"), limit=req.get("limit"))
+        workers.binary_retrieval.enqueue(
+            workers.fetch_query, req.get("query"), limit=req.get("limit")
+        )
     else:
         abort(400)
 

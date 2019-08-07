@@ -92,7 +92,9 @@ class AnalysisResult(Base):
     """
 
     __tablename__ = "results"
-    __table_args__ = (UniqueConstraint("sha256", "connector_name", "analysis_name", name="_result_uc"),)
+    __table_args__ = (
+        UniqueConstraint("sha256", "connector_name", "analysis_name", name="_result_uc"),
+    )
 
     sha256 = Column(String(64), nullable=False)
     """
@@ -178,3 +180,6 @@ class AnalysisResult(Base):
         """
         # TODO(ww): This could probably be a relation instead.
         return Binary.from_hash(self.sha256)
+
+    def __str__(self):
+        return f"{self.connector_name}:{self.analysis_name}:{self.sha256}"

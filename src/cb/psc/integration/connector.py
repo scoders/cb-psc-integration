@@ -130,7 +130,9 @@ class Connector(object):
         >>> self.result(analysis_name="foo", score=50, payload={})
         """
         job = get_current_job()
-        return AnalysisResult.create(**kwargs, sha256=binary.sha256, connector_name=self.name, job_id=job.id)
+        return AnalysisResult.create(
+            **kwargs, sha256=binary.sha256, connector_name=self.name, job_id=job.id
+        )
 
     def _analyze(self, binary):
         log.info(f"{self.name}: analyzing binary {binary.sha256}")
@@ -141,8 +143,16 @@ class Connector(object):
 
         if refcount < 0:
             log.info(f"weird: refcount < 0 for cached binary: {binary.sha256}")
+        elif refcount == 0:
+            workers.binary_cleanup.enqueue(workers.flush_binary, binary)
+        else:
+            log.info(f"binary {binary.sha256} has {refcount} references remaining")
 
-        workers.binary_cleanup.enqueue(workers.flush_binary, binary)
+        if self.name in config.feed_mapping:
+            workers.feed_dispatch.enqueue(
+                workers.dispatch_to_feed, config.feed_mapping[self.name], result
+            )
+
         return result
 
     def analyze(self, binary, data):

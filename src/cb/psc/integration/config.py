@@ -1,6 +1,6 @@
 import logging
 import os
-from typing import List, NamedTuple, Optional
+from typing import Dict, List, NamedTuple, Optional
 
 import yaml
 
@@ -71,6 +71,11 @@ class Config(NamedTuple):
     connector_dirs: List[str] = ["/usr/share/cb/integrations"]
     """
     A list of directories to search for connectors.
+    """
+
+    feed_mapping: Dict[str, str] = {}
+    """
+    A mapping of connector names to feed IDs, for reporting purposes.
     """
 
     @property
