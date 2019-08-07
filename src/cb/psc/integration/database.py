@@ -158,6 +158,13 @@ class AnalysisResult(Base):
     :rtype: str
     """
 
+    dispatched = Column(Boolean, default=False)
+    """
+    Whether this result has been dispatched to a feed.
+
+    :rtype: bool
+    """
+
     @property
     def binary(self):
         """
@@ -169,4 +176,5 @@ class AnalysisResult(Base):
 
         >>> result.binary.sha256 == result.sha256
         """
+        # TODO(ww): This could probably be a relation instead.
         return Binary.from_hash(self.sha256)
