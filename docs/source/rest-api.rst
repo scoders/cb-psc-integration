@@ -12,15 +12,23 @@ Submitting binaries
 
 Binaries can be submitted en-masse to the sandbox via a ``POST`` to the ``/analyze`` endpoint.
 
-The ``/analyze`` endpoint takes a JSON payload that looks like this:
+The ``/analyze`` endpoint takes a JSON payload with the following schema:
 
-.. code-block:: json
+.. code-block::
 
     {
-        "hashes": []
+        "hashes": [<string>],
+        "query": <string>,
+        "limit": <int>,
     }
 
-Where each member of ``hashes`` is a SHA256 hash for a binary stored on the UBS.
+Where:
+
+* ``hashes`` is an array of SHA256 hashes for binaries stored on the UBS
+* ``query`` is a Cb ThreatHunter process query, whose results will be retrieved from the UBS
+* ``limit`` is the maximum number of items to take from ``query``'s results
+
+Only *one* of ``hashes`` or ``query`` may be provided. ``limit`` only applies to ``query``.
 
 Example:
 
@@ -135,3 +143,24 @@ job IDs as alternative deletion filters.
 
 ``/analyze`` **always** returns ``{"success": true}``. Future iterations will return
 more information about the deleted analyses.
+
+Retrieving hashes
+-----------------
+
+The list of all binary hashes analyzed (or currently being analyzed) by the sandbox can
+be retrieved via a ``GET`` to ``/hashes``. No arguments or body is required.
+
+
+Example::
+
+.. code-block:: bash
+
+    curl -XGET http://localhost:5000/hashes
+
+Yields::
+
+.. code-block:: json
+
+    [
+      "6f88fb88ffb0f1d5465c2826e5b4f523598b1b8378377c8378ffebc171bad18b",
+    ]
