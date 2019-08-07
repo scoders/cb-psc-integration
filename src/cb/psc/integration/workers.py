@@ -170,7 +170,11 @@ def flush_binary(binary):
 
 
 def dispatch_to_feed(feed_id, result):
+    """
+    Dispatches the given result to the given CbTH feed.
+    """
     log.debug(f"dispatch_to_feed: {feed_id} {result}")
+    result.update(dispatched=True)
 
 
 def load_connectors():
