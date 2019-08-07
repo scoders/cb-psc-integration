@@ -21,8 +21,8 @@ class YaraConfig(ConnectorConfig):
 
 
 class YaraConnector(Connector):
+    Config = YaraConfig
     name = "yara"
-    konfig = YaraConfig
 
     # TODO(ww): Compiled rule caching.
     @property

@@ -19,7 +19,7 @@ class ConnectorConfig:
     """
     The parent class for per-connector configuration.
 
-    Individual connectors should assign their `konfig` property to a subclass
+    Individual connectors should assign their `Config` property to a subclass
     of :py:class:`ConnectorConfig`.
     """
 
@@ -90,15 +90,15 @@ class Connector(object):
         """
         Returns the configuration associated with this connector.
         """
-        if self.konfig:
+        if self.Config:
             try:
-                return self.konfig.from_file()
+                return self.Config.from_file()
             except yaml.YAMLError as e:
                 log.exception(f"{self.name} couldn't parse config")
                 raise e
             except IOError as e:
                 log.warning(f"{self.name} couldn't read config, trying default")
-                return self.konfig()
+                return self.Config()
         else:
             log.warn(f"config requested for a connector that doesn't have any")
 
