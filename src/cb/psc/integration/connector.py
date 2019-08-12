@@ -148,10 +148,10 @@ class Connector(object):
         else:
             log.info(f"binary {binary.sha256} has {refcount} references remaining")
 
-        if self.name in config.feed_mapping:
-            workers.feed_dispatch.enqueue(
-                workers.dispatch_to_feed, config.feed_mapping[self.name], result
-            )
+        if self.name in config.sinks:
+            workers.result_dispatch.enqueue(workers.dispatch_result, result)
+        else:
+            log.warning("no sink mapped to this connector; not dispatching result")
 
         return result
 

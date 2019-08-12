@@ -1,3 +1,10 @@
 loglevel: DEBUG
 cbth_profile: default
 database: sqlite:////tmp/psc.db
+result_sinks:
+  "null":
+    kind: feed
+    id: some_feed_id
+  yara:
+    kind: watchlist
+    id: some_watchlist_id

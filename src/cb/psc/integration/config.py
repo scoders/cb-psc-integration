@@ -1,3 +1,4 @@
+import functools
 import logging
 import os
 from typing import Dict, List, NamedTuple, Optional
@@ -7,6 +8,32 @@ import yaml
 logging.basicConfig()
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
+
+
+class SinkConfig(NamedTuple):
+    """
+    Represents the configuration for a "result sink", i.e.
+    an output that the sandbox understands how to dispatch analysis
+    results to.
+    """
+
+    kind: str
+    """
+    The kind of sink.
+    """
+
+    id: str
+    """
+    The sink's unique identifier.
+    """
+
+    # TODO(ww): This should really be part of the initialization behavior.
+    def validate(self):
+        if self.kind not in {"feed", "watchlist"}:
+            raise TypeError("unknown sink kind")
+
+    def __str__(self):
+        return f"{self.kind} {self.id}"
 
 
 class Config(NamedTuple):
@@ -73,9 +100,9 @@ class Config(NamedTuple):
     A list of directories to search for connectors.
     """
 
-    feed_mapping: Dict[str, str] = {}
+    result_sinks: Dict[str, dict] = {}
     """
-    A mapping of connector names to feed IDs, for reporting purposes.
+    A mapping of connector names to result sink configurations.
     """
 
     @property
@@ -127,6 +154,19 @@ class Config(NamedTuple):
             config_data = yaml.load(config_file)
             log.info(f"loaded config data: {config_data}")
             return cls(**config_data)
+
+    @property
+    @functools.lru_cache()
+    def sinks(self):
+        log.debug("loading sink configs")
+        sinks = {}
+        for con_name, sink_config in self.result_sinks.items():
+            try:
+                sinks[con_name] = SinkConfig(**sink_config)
+                sinks[con_name].validate()
+            except TypeError as e:
+                log.error(f"failed to load sink config for {con_name}: {e}")
+        return frozendict(sinks)
 
 
 config = Config.load()

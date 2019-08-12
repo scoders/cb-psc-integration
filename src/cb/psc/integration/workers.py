@@ -25,7 +25,7 @@ redis = r.Redis(host=config.redis_host, port=config.redis_port)
 binary_retrieval = Queue("binary_retrieval", connection=redis)
 binary_analysis = Queue("binary_analysis", connection=redis)
 binary_cleanup = Queue("binary_cleanup", connection=redis)
-feed_dispatch = Queue("feed_dispatch", connection=redis)
+result_dispatch = Queue("result_dispatch", connection=redis)
 
 log = logging.getLogger(__name__)
 log.setLevel(config.loglevel)
@@ -169,11 +169,21 @@ def flush_binary(binary):
     binary.update(available=False)
 
 
-def dispatch_to_feed(feed_id, result):
+def dispatch_result(result):
     """
-    Dispatches the given result to the given CbTH feed.
+    Dispatches the given result to the appropriate sink.
     """
-    log.debug(f"dispatch_to_feed: {feed_id} {result}")
+    sink = config.sinks[result.connector_name]
+    log.debug(f"dispatch_result: {sink} {result}")
+
+    if sink.kind == "feed":
+        log.debug("dispatching result to feed")
+        # dispatch_to_feed()
+    elif sink.kind == "watchlist":
+        log.debug("dispatching result to watchlist")
+        # dispatch_to_watchlist()
+
+    # feed = cbth().select(threathunter.Feed, feed_id)
     result.update(dispatched=True)
 
 
