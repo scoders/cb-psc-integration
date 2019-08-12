@@ -1,5 +1,12 @@
 ALL_PY_SRCS := $(shell find src -name '*.py') app.py
 
+SUPERVISORD_LOGSINK = /dev/null
+ifeq ($(ENVIRONMENT),development)
+	SUPERVISORD_LOGSINK = /dev/stderr
+endif
+
+export SUPERVISORD_LOGSINK
+
 .PHONY: all
 all:
 	@echo "Run my targets individually!"
