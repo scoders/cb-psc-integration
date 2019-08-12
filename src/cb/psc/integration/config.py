@@ -2,10 +2,11 @@ import functools
 import logging
 import os
 from dataclasses import dataclass, field
-from typing import Mapping, Tuple, Optional
+from typing import Mapping, Optional, Tuple
+
+import yaml
 
 from frozendict import frozendict
-import yaml
 
 logging.basicConfig()
 log = logging.getLogger(__name__)
