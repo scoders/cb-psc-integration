@@ -1,6 +1,10 @@
+environment: development
 loglevel: DEBUG
 cbth_profile: default
 database: sqlite:////tmp/psc.db
+connector_dirs:
+  - /usr/share/cb/integrations
+  - src/connectors
 result_sinks:
   "null":
     kind: feed

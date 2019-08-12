@@ -137,7 +137,8 @@ class Connector(object):
     def _analyze(self, binary):
         log.info(f"{self.name}: analyzing binary {binary.sha256}")
         data = workers.redis.get(binary.data_key)
-        result = self.analyze(binary, data)
+        results = self.analyze(binary, data)
+        result_ids = [result.id for result in results]
 
         refcount = workers.redis.decr(binary.count_key)
 
@@ -149,11 +150,11 @@ class Connector(object):
             log.info(f"binary {binary.sha256} has {refcount} references remaining")
 
         if self.name in config.sinks:
-            workers.result_dispatch.enqueue(workers.dispatch_result, result)
+            workers.result_dispatch.enqueue(workers.dispatch_result, result_ids)
         else:
             log.warning("no sink mapped to this connector; not dispatching result")
 
-        return result
+        return results
 
     def analyze(self, binary, data):
         """

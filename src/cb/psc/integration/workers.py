@@ -12,14 +12,14 @@ from rq.registry import StartedJobRegistry
 
 import cb.psc.integration.connector as connector
 from cb.psc.integration.config import config
-from cb.psc.integration.database import Binary, session
+from cb.psc.integration.database import AnalysisResult, Binary, session
 from cb.psc.integration.utils import cbth, grouper
 
 logging.basicConfig()
 log = logging.getLogger()
 log.setLevel(config.loglevel)
 
-listen = ["binary_retrieval", "binary_analysis", "binary_cleanup"]
+listen = ["binary_retrieval", "binary_analysis", "binary_cleanup", "result_dispatch"]
 
 redis = r.Redis(host=config.redis_host, port=config.redis_port)
 binary_retrieval = Queue("binary_retrieval", connection=redis)
@@ -169,22 +169,25 @@ def flush_binary(binary):
     binary.update(available=False)
 
 
-def dispatch_result(result):
+def dispatch_result(result_ids):
     """
-    Dispatches the given result to the appropriate sink.
+    Dispatches the given results (by ID) to the appropriate sink.
     """
-    sink = config.sinks[result.connector_name]
-    log.debug(f"dispatch_result: {sink} {result}")
+    results = session.query(AnalysisResult).filter(AnalysisResult.id.in_(result_ids)).all()
 
-    if sink.kind == "feed":
-        log.debug("dispatching result to feed")
-        # dispatch_to_feed()
-    elif sink.kind == "watchlist":
-        log.debug("dispatching result to watchlist")
-        # dispatch_to_watchlist()
+    for result in results:
+        sink = config.sinks[result.connector_name]
+        log.debug(f"dispatch_result: {sink} {result}")
 
-    # feed = cbth().select(threathunter.Feed, feed_id)
-    result.update(dispatched=True)
+        if sink.kind == "feed":
+            log.debug("dispatching result to feed")
+            # dispatch_to_feed()
+        elif sink.kind == "watchlist":
+            log.debug("dispatching result to watchlist")
+            # dispatch_to_watchlist()
+
+        # feed = cbth().select(threathunter.Feed, feed_id)
+        result.update(dispatched=True)
 
 
 def load_connectors():

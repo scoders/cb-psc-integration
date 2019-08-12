@@ -1,8 +1,10 @@
 import functools
 import logging
 import os
-from typing import Dict, List, NamedTuple, Optional
+from dataclasses import dataclass, field
+from typing import Mapping, Tuple, Optional
 
+from frozendict import frozendict
 import yaml
 
 logging.basicConfig()
@@ -10,7 +12,8 @@ log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
 
-class SinkConfig(NamedTuple):
+@dataclass(eq=True, frozen=True)
+class SinkConfig:
     """
     Represents the configuration for a "result sink", i.e.
     an output that the sandbox understands how to dispatch analysis
@@ -36,7 +39,8 @@ class SinkConfig(NamedTuple):
         return f"{self.kind} {self.id}"
 
 
-class Config(NamedTuple):
+@dataclass(eq=True, frozen=True)
+class Config:
     """
     The primary source of configuration for the binary analysis sandbox.
 
@@ -95,12 +99,12 @@ class Config(NamedTuple):
     before failing.
     """
 
-    connector_dirs: List[str] = ["/usr/share/cb/integrations"]
+    connector_dirs: Tuple[str, ...] = ("/usr/share/cb/integrations",)
     """
     A list of directories to search for connectors.
     """
 
-    result_sinks: Dict[str, dict] = {}
+    result_sinks: Mapping[str, dict] = field(default_factory=frozendict)
     """
     A mapping of connector names to result sink configurations.
     """
@@ -111,49 +115,6 @@ class Config(NamedTuple):
         Returns true if the environment is a development environment.
         """
         return self.environment == "development"
-
-    @classmethod
-    def development(cls):
-        """
-        Returns a default configuration for a development environment.
-        """
-        return cls(
-            environment="development",
-            loglevel="DEBUG",
-            database="sqlite:////tmp/psc.db",
-            binary_timeout=None,
-            connector_dirs=[
-                "/usr/share/cb/integrations",
-                os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../connectors")),
-            ],
-        )
-
-    @classmethod
-    def production(cls):
-        """
-        Returns a default configuration for a production environment.
-        """
-        return cls()
-
-    @classmethod
-    def load(cls):
-        """
-        Creates a :py:class:`Config` object from a `config.yml` file present
-        at the root of the binary analysis SDK's source tree.
-        """
-        if os.getenv("ENVIRONMENT") == "development":
-            log.info("ENVIRONMENT=development set, using default development config")
-            return cls.development()
-
-        config_filename = os.path.join(os.path.dirname(__file__), "../../../../config.yml")
-        if not os.path.isfile(config_filename):
-            log.warning("no config file found, using default production config")
-            return cls.production()
-
-        with open(config_filename, "r") as config_file:
-            config_data = yaml.load(config_file)
-            log.info(f"loaded config data: {config_data}")
-            return cls(**config_data)
 
     @property
     @functools.lru_cache()
@@ -166,7 +127,37 @@ class Config(NamedTuple):
                 sinks[con_name].validate()
             except TypeError as e:
                 log.error(f"failed to load sink config for {con_name}: {e}")
-        return sinks
+        log.debug(f"sinks: {sinks}")
+        return frozendict(sinks)
+
+    @classmethod
+    def _normalize_config(cls, config_data):
+        if "connector_dirs" in config_data:
+            config_data["connector_dirs"] = tuple(config_data["connector_dirs"])
+        for con_name, sink_conf in config_data.get("result_sinks", {}).items():
+            config_data["result_sinks"][con_name] = frozendict(sink_conf)
+        config_data["result_sinks"] = frozendict(config_data.get("result_sinks", {}))
+        return config_data
+
+    @classmethod
+    def load(cls):
+        """
+        Creates a :py:class:`Config` object from a `config.yml` file present
+        at the root of the binary analysis SDK's source tree.
+        """
+        if os.getenv("ENVIRONMENT") == "development":
+            log.info("ENVIRONMENT=development set")
+
+        config_filename = os.path.join(os.path.dirname(__file__), "../../../../config.yml")
+        if not os.path.isfile(config_filename):
+            log.warning("no config file found, using default production config")
+            return cls()
+
+        with open(config_filename, "r") as config_file:
+            config_data = yaml.safe_load(config_file)
+            log.info(f"loaded config data: {config_data}")
+            config_data = cls._normalize_config(config_data)
+            return cls(**config_data)
 
 
 config = Config.load()

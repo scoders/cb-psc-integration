@@ -23,6 +23,7 @@ setup(
     install_requires=[
         "cbapi == 1.5.1",
         "Flask",
+        "frozendict",
         "pyyaml",
         "redis",
         "requests",

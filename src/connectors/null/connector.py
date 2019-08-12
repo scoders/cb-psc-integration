@@ -14,4 +14,4 @@ class NullConnector(Connector):
     def analyze(self, binary, data):
         time.sleep(15)
 
-        return self.result(binary, analysis_name=self.name, score=100)
+        return [self.result(binary, analysis_name=self.name, score=100)]
