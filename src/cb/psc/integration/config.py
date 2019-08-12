@@ -166,7 +166,7 @@ class Config(NamedTuple):
                 sinks[con_name].validate()
             except TypeError as e:
                 log.error(f"failed to load sink config for {con_name}: {e}")
-        return frozendict(sinks)
+        return sinks
 
 
 config = Config.load()
