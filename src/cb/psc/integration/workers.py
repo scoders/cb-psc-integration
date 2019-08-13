@@ -14,6 +14,7 @@ import cb.psc.integration.connector as connector
 from cb.psc.integration.config import config
 from cb.psc.integration.database import AnalysisResult, Binary, session
 from cb.psc.integration.utils import cbth, grouper
+from cbpi.errors import ApiError
 
 logging.basicConfig()
 log = logging.getLogger()
@@ -169,10 +170,31 @@ def flush_binary(binary):
     binary.update(available=False)
 
 
+def dispatch_to_feed(feed_id, results):
+    log.debug(f"dispatch_to_feed: {feed_id}")
+
+    try:
+        feed = cbth().select(threathunter.Feed, feed_id)
+    except ApiError as e:
+        log.error(f"couldn't find CbTH feed {feed_id}: {e}")
+        return
+
+
+def dispatch_to_watchlist(watchlist_id, results):
+    log.debug(f"dispatch_to_watchlist: {watchlist_id}")
+
+    try:
+        watchlist = cbth().select(threathunter.Watchlist, watchlist_id)
+    except ApiError as e:
+        log.error(f"couldn't find CbTH watchlist {watchlist_id}: {e}")
+        return
+
+
 def dispatch_result(result_ids):
     """
     Dispatches the given results (by ID) to the appropriate sink.
     """
+    log.debug(f"dispatch_result: {len(result_ids)} results")
     results = session.query(AnalysisResult).filter(AnalysisResult.id.in_(result_ids)).all()
 
     for result in results:
@@ -180,13 +202,10 @@ def dispatch_result(result_ids):
         log.debug(f"dispatch_result: {sink} {result}")
 
         if sink.kind == "feed":
-            log.debug("dispatching result to feed")
-            # dispatch_to_feed()
+            dispatch_to_feed(sink.id, results)
         elif sink.kind == "watchlist":
-            log.debug("dispatching result to watchlist")
-            # dispatch_to_watchlist()
+            dispatch_to_watchlist(sink.id, results)
 
-        # feed = cbth().select(threathunter.Feed, feed_id)
         result.update(dispatched=True)
 
 

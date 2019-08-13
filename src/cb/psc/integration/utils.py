@@ -1,7 +1,6 @@
 import functools
 import logging
 from itertools import zip_longest
-from typing import NamedTuple
 
 import cbapi.psc.threathunter as threathunter
 
