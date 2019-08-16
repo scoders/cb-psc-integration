@@ -3,9 +3,9 @@ import logging
 from itertools import zip_longest
 
 import cbapi.psc.threathunter as threathunter
+from schema import And, Optional, Or, Schema
 
 from cb.psc.integration.config import config
-from schema import And, Optional, Or, Schema
 
 log = logging.getLogger()
 log.setLevel(config.loglevel)
@@ -17,6 +17,16 @@ JobSchema = Schema(
         "repeat": Or("forever", And(int, lambda n: n > 0)),
         Optional("limit"): And(int, lambda n: n > 0),
     }
+)
+
+AnalyzeHashesSchema = Schema({"hashes": And([str], len)})
+AnalyzeQuerySchema = Schema({"query": And(str, len), Optional("limit"): And(int, lambda n: n > 0)})
+
+RetrieveAnalysesSchema = Schema({"hashes": And([str], len)})
+
+# TODO(ww): Validate individual items as well.
+RemoveAnalysesSchema = Schema(
+    {"kind": Or("hashes", "connector_names", "analysis_names", "job_ids"), "items": And([str], len)}
 )
 
 

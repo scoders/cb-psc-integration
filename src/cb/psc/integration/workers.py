@@ -6,6 +6,7 @@ import sys
 import cbapi.psc.threathunter as threathunter
 import redis as r
 import requests
+from cbapi.errors import ApiError
 from rq import Connection, Queue, Worker
 from rq.job import Job
 from rq.registry import StartedJobRegistry
@@ -14,7 +15,6 @@ import cb.psc.integration.connector as connector
 from cb.psc.integration.config import config
 from cb.psc.integration.database import AnalysisResult, Binary, session
 from cb.psc.integration.utils import cbth, grouper
-from cbapi.errors import ApiError
 
 logging.basicConfig()
 log = logging.getLogger()
