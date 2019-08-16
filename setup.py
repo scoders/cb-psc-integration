@@ -28,6 +28,8 @@ setup(
         "redis",
         "requests",
         "rq == 1.1.0",
+        "rq-scheduler",
+        "schema",
         "supervisor == 4.0.4",
         "Sphinx",
         "SQLAlchemy",

@@ -1,10 +1,12 @@
 import logging
 
 from flask import Flask, abort, jsonify, request
+from schema import SchemaError
 
 import cb.psc.integration.database as database
 import cb.psc.integration.workers as workers
 from cb.psc.integration.config import config
+from cb.psc.integration.utils import JobSchema
 
 log = logging.getLogger()
 log.setLevel(config.loglevel)
@@ -16,6 +18,19 @@ app = Flask(__name__)
 def remove_session(ex=None):
     database.session.commit()
     database.session.remove()
+
+
+@app.route("/job", methods=["POST"])
+def job():
+    req = request.get_json(force=True)
+    log.debug(f"/job: {req!r}")
+
+    try:
+        req = JobSchema.validate(req)
+    except SchemaError as e:
+        abort(400, str(e))
+
+    return jsonify(success=True)
 
 
 @app.route("/analyze", methods=["POST"])
