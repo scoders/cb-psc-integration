@@ -10,6 +10,7 @@ from cbapi.errors import ApiError
 from rq import Connection, Queue, Worker
 from rq.job import Job
 from rq.registry import StartedJobRegistry
+from rq_scheduler import Scheduler
 
 import cb.psc.integration.connector as connector
 from cb.psc.integration.config import config
@@ -24,6 +25,7 @@ listen = ["binary_retrieval", "binary_analysis", "binary_cleanup", "result_dispa
 
 redis = r.Redis(host=config.redis_host, port=config.redis_port)
 binary_retrieval = Queue("binary_retrieval", connection=redis)
+scheduled_retrieval = Scheduler("binary_retrieval", connection=redis)
 binary_analysis = Queue("binary_analysis", connection=redis)
 binary_cleanup = Queue("binary_cleanup", connection=redis)
 result_dispatch = Queue("result_dispatch", connection=redis)

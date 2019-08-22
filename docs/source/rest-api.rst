@@ -19,7 +19,7 @@ The ``/analyze`` endpoint takes a JSON payload with the following schema:
     {
         "hashes": [<string>],
         "query": <string>,
-        "limit": <int>,
+        "limit": <int>?,
     }
 
 Where:
@@ -27,6 +27,7 @@ Where:
 * ``hashes`` is an array of SHA256 hashes for binaries stored on the UBS
 * ``query`` is a Cb ThreatHunter process query, whose results will be retrieved from the UBS
 * ``limit`` is the maximum number of items to take from ``query``'s results
+  * If ``limit`` is not provided, all results are taken
 
 Only *one* of ``hashes`` or ``query`` may be provided. ``limit`` only applies to ``query``.
 
@@ -38,6 +39,31 @@ Example:
 
 
 ``/analyze`` **always** returns ``{"success": true}``.
+
+Scheduling queries
+------------------
+
+In addition to submitting binaries directly or via a one-shot query, the sandbox can be directed
+to schedule a query for repeated retrieval via a ``POST`` to the ``/job`` endpoint.
+
+The ``/job`` endpoint takes a JSON payload with the following schema:
+
+.. code-block::
+
+    {
+        "query": <string>,
+        "schedule": <string>,
+        "repeat": "forever" | <int>,
+        "limit": <int>?
+    }
+
+Where:
+
+* ``query`` is a Cb ThreatHunter process query, whose results will be retrieved from the UBS
+* ``schedule`` is a ``crontab(5)`` formatted schedule string
+* ``repeat`` is the number of times to repeat the query on ``schedule``, or ``"forever"``
+* ``limit`` is the maximum number of items to take from ``query``'s results
+  * If ``limit`` is not provided, all results are taken
 
 Retrieving results
 ------------------

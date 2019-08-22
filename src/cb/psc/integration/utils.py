@@ -3,6 +3,7 @@ import logging
 from itertools import zip_longest
 
 import cbapi.psc.threathunter as threathunter
+import croniter
 import validators
 from schema import And, Optional, Or, Schema
 
@@ -14,7 +15,7 @@ log.setLevel(config.loglevel)
 JobSchema = Schema(
     {
         "query": And(str, len),
-        "schedule": And(str, len),
+        "schedule": And(str, croniter.is_valid),
         "repeat": Or("forever", And(int, lambda n: n > 0)),
         Optional("limit"): And(int, lambda n: n > 0),
     }

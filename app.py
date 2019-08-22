@@ -35,6 +35,15 @@ def job():
     except SchemaError as e:
         abort(400, str(e))
 
+    workers.scheduled_retrieval.cron(
+        req["schedule"],
+        func=workers.fetch_query,
+        args=[req["query"]],
+        kwargs={"limit": req.get("limit")},
+        repeat=None if req["repeat"] == "forever" else req["repeat"],
+    )
+
+    # TODO(ww): Return the scheduled job ID here, so that users can cancel it.
     return jsonify(success=True)
 
 
