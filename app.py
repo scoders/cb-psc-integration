@@ -64,9 +64,9 @@ def job():
     log.debug(f"/job: {req!r}")
 
     if request.method == "POST":
-        add_job(req)
+        return add_job(req)
     elif request.method == "DELETE":
-        remove_job(req)
+        return remove_job(req)
 
 
 @app.route("/analyze", methods=["POST"])

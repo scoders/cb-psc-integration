@@ -3,8 +3,8 @@ import logging
 from itertools import zip_longest
 
 import cbapi.psc.threathunter as threathunter
-import croniter
 import validators
+from croniter import croniter
 from schema import And, Optional, Or, Schema
 
 from cb.psc.integration.config import config

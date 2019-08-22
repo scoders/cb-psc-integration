@@ -24,11 +24,13 @@ log.setLevel(config.loglevel)
 listen = ["binary_retrieval", "binary_analysis", "binary_cleanup", "result_dispatch"]
 
 redis = r.Redis(host=config.redis_host, port=config.redis_port)
+
 binary_retrieval = Queue("binary_retrieval", connection=redis)
-scheduled_retrieval = Scheduler("binary_retrieval", connection=redis)
 binary_analysis = Queue("binary_analysis", connection=redis)
 binary_cleanup = Queue("binary_cleanup", connection=redis)
 result_dispatch = Queue("result_dispatch", connection=redis)
+
+scheduled_retrieval = Scheduler(queue=binary_retrieval, connection=redis)
 
 log = logging.getLogger(__name__)
 log.setLevel(config.loglevel)

@@ -66,6 +66,14 @@ Where:
 * ``limit`` is the maximum number of items to take from ``query``'s results
   * If ``limit`` is not provided, all results are taken
 
+Example:
+
+The following submits a query to be run every minute exactly twice:
+
+.. code-block:: bash
+
+    curl -XPOST http://localhost:5000/job --data \
+      '{ "query": "process_name:cmd.exe", "schedule": "1 * * * *", "repeat": 2, "limit": 10 }'
 
 On success, ``/job`` will return a payload with the following schema:
 
