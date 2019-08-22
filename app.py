@@ -6,7 +6,12 @@ from schema import SchemaError
 import cb.psc.integration.database as database
 import cb.psc.integration.workers as workers
 from cb.psc.integration.config import config
-from cb.psc.integration.utils import JobSchema
+from cb.psc.integration.utils import (
+    AnalyzeSchema,
+    JobSchema,
+    RemoveAnalysesSchema,
+    RetrieveAnalysesSchema
+)
 
 log = logging.getLogger()
 log.setLevel(config.loglevel)
@@ -38,29 +43,34 @@ def analyze():
     req = request.get_json(force=True)
     log.debug(f"/analyze: {req!r}")
 
+    try:
+        req = AnalyzeSchema.validate(req)
+    except SchemaError as e:
+        abort(400, str(e))
+
     if "hashes" in req:
         hashes = req.get("hashes")
         if not isinstance(hashes, list) or len(hashes) < 1:
             abort(400)
         workers.binary_retrieval.enqueue(workers.fetch_binaries, hashes)
         log.debug(f"enqueued retrieval of {len(hashes)} binaries")
-    elif "query" in req:
+    else:
         workers.binary_retrieval.enqueue(
             workers.fetch_query, req.get("query"), limit=req.get("limit")
         )
-    else:
-        abort(400)
 
     return jsonify(success=True)
 
 
 def retrieve_analyses(req):
     log.debug(f"retrieve_analyses: {req}")
+
+    try:
+        req = RetrieveAnalysesSchema.validate(req)
+    except SchemaError as e:
+        abort(400, str(e))
+
     hashes = req.get("hashes")
-
-    if not isinstance(hashes, list) or len(hashes) < 1:
-        abort(400)
-
     response = {"completed": {}, "pending": workers.active_analyses()}
     for hash in hashes:
         results = database.AnalysisResult.query.filter_by(sha256=hash)
@@ -73,12 +83,13 @@ def remove_analyses(req):
     # TODO(ww): Remove analyses by hash, by connector name, by job ID
     log.debug(f"remove_analyses: {req}")
 
+    try:
+        req = RemoveAnalysesSchema.validate(req)
+    except SchemaError as e:
+        abort(400, str(e))
+
     kind = req.get("kind")
     items = req.get("items")
-
-    if not isinstance(items, list):
-        return jsonify(success=False, message="Expected items to be a list")
-
     # TODO(ww): Could parameterize this to de-duplicate.
     if kind == "hashes":
         query = database.AnalysisResult.sha256.in_(items)

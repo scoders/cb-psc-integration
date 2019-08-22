@@ -3,6 +3,7 @@ import logging
 from itertools import zip_longest
 
 import cbapi.psc.threathunter as threathunter
+import validators
 from schema import And, Optional, Or, Schema
 
 from cb.psc.integration.config import config
@@ -19,14 +20,23 @@ JobSchema = Schema(
     }
 )
 
-AnalyzeHashesSchema = Schema({"hashes": And([str], len)})
-AnalyzeQuerySchema = Schema({"query": And(str, len), Optional("limit"): And(int, lambda n: n > 0)})
+AnalyzeSchema = Schema(
+    Or(
+        {"hashes": And([str], len)},
+        {"query": And(str, len), Optional("limit"): And(int, lambda n: n > 0)},
+    )
+)
 
 RetrieveAnalysesSchema = Schema({"hashes": And([str], len)})
 
 # TODO(ww): Validate individual items as well.
 RemoveAnalysesSchema = Schema(
-    {"kind": Or("hashes", "connector_names", "analysis_names", "job_ids"), "items": And([str], len)}
+    Or(
+        {"kind": "hashes", "items": And([str], validators.sha256)},
+        {"kind": "connector_names", "items": And([str], len)},
+        {"kind": "analysis_names", "items": And([str], len)},
+        {"kind": "job_ids", "items": And([str], len)},
+    )
 )
 
 
