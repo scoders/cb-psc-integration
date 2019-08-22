@@ -38,7 +38,8 @@ Example:
     curl -XPOST http://localhost:5000/analyze --data '{ "hashes": ["6f88fb88ffb0f1d5465c2826e5b4f523598b1b8378377c8378ffebc171bad18b"] }'
 
 
-``/analyze`` **always** returns ``{"success": true}``.
+On failure (schema mismatch), ``/analyze`` returns an HTTP 400.
+In all other cases, ``/analyze`` returns ``{"success": true}``.
 
 Scheduling queries
 ------------------
@@ -64,6 +65,40 @@ Where:
 * ``repeat`` is the number of times to repeat the query on ``schedule``, or ``"forever"``
 * ``limit`` is the maximum number of items to take from ``query``'s results
   * If ``limit`` is not provided, all results are taken
+
+
+On success, ``/job`` will return a payload with the following schema:
+
+.. code-block::
+
+    {
+        "success": "true",
+        "job_id": <string>,
+    }
+
+
+Where:
+
+* ``job_id`` is a unique identifier for the underlying job
+
+Removing a scheduled query
+--------------------------
+
+Scheduled queries added via a ``POST`` to ``/job`` can be removed via a ``DELETE`` to the
+same endpoint with the following schema:
+
+.. code-block::
+
+    {
+        "job_id": <string>
+    }
+
+Where:
+
+* ``job_id`` is the unique job identifier previously returned by scheduled query creation
+
+On failure (schema mismatch), ``/analyze`` returns an HTTP 400.
+In all other cases, ``/analyze`` returns ``{"success": true}``.
 
 Retrieving results
 ------------------

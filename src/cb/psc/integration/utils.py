@@ -12,7 +12,7 @@ from cb.psc.integration.config import config
 log = logging.getLogger()
 log.setLevel(config.loglevel)
 
-JobSchema = Schema(
+AddJobSchema = Schema(
     {
         "query": And(str, len),
         "schedule": And(str, croniter.is_valid),
@@ -20,6 +20,8 @@ JobSchema = Schema(
         Optional("limit"): And(int, lambda n: n > 0),
     }
 )
+
+RemoveJobSchema = Schema({"job_id": And(str, len)})
 
 AnalyzeSchema = Schema(
     Or(

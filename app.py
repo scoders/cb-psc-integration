@@ -7,9 +7,10 @@ import cb.psc.integration.database as database
 import cb.psc.integration.workers as workers
 from cb.psc.integration.config import config
 from cb.psc.integration.utils import (
+    AddJobSchema,
     AnalyzeSchema,
-    JobSchema,
     RemoveAnalysesSchema,
+    RemoveJobSchema,
     RetrieveAnalysesSchema
 )
 
@@ -25,17 +26,15 @@ def remove_session(ex=None):
     database.session.remove()
 
 
-@app.route("/job", methods=["POST"])
-def job():
-    req = request.get_json(force=True)
-    log.debug(f"/job: {req!r}")
+def add_job(req):
+    log.debug(f"add_job: {req}")
 
     try:
-        req = JobSchema.validate(req)
+        req = AddJobSchema.validate(req)
     except SchemaError as e:
         abort(400, str(e))
 
-    workers.scheduled_retrieval.cron(
+    redis_job = workers.scheduled_retrieval.cron(
         req["schedule"],
         func=workers.fetch_query,
         args=[req["query"]],
@@ -43,8 +42,31 @@ def job():
         repeat=None if req["repeat"] == "forever" else req["repeat"],
     )
 
-    # TODO(ww): Return the scheduled job ID here, so that users can cancel it.
+    return jsonify(success=True, job_id=redis_job.id)
+
+
+def remove_job(req):
+    log.debug(f"remove_job: {req}")
+
+    try:
+        req = RemoveJobSchema.validate(req)
+    except SchemaError as e:
+        abort(400, str(e))
+
+    workers.scheduled_retrieval.cancel(req["job_id"])
+
     return jsonify(success=True)
+
+
+@app.route("/job", methods=["POST", "DELETE"])
+def job():
+    req = request.get_json(force=True)
+    log.debug(f"/job: {req!r}")
+
+    if request.method == "POST":
+        add_job(req)
+    elif request.method == "DELETE":
+        remove_job(req)
 
 
 @app.route("/analyze", methods=["POST"])
@@ -89,7 +111,6 @@ def retrieve_analyses(req):
 
 
 def remove_analyses(req):
-    # TODO(ww): Remove analyses by hash, by connector name, by job ID
     log.debug(f"remove_analyses: {req}")
 
     try:
