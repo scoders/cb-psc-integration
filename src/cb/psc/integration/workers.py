@@ -15,7 +15,7 @@ from rq_scheduler import Scheduler
 import cb.psc.integration.connector as connector
 from cb.psc.integration.config import config
 from cb.psc.integration.database import AnalysisResult, Binary, session
-from cb.psc.integration.utils import cbth, grouper
+from cb.psc.integration.utils import cbth, grouper, payload_to_iocs
 
 logging.basicConfig()
 log = logging.getLogger()
@@ -183,15 +183,30 @@ def dispatch_to_feed(feed_id, results):
         log.error(f"couldn't find CbTH feed {feed_id}: {e}")
         return
 
+    reports = []
+    for result in results:
+        rep_dict = {
+            "timestamp": int(result.scan_time.timestamp()),
+            "title": result.connector_name,
+            "description": result.analysis_name,
+            "severity": result.score,
+            "iocs": payload_to_iocs(result.payload),
+        }
+
+        report = cbth().create(threathunter.Report, rep_dict)
+        reports.append(report)
+
+    feed.append_reports(reports)
+
 
 def dispatch_to_watchlist(watchlist_id, results):
     log.debug(f"dispatch_to_watchlist: {watchlist_id}")
-
-    try:
-        watchlist = cbth().select(threathunter.Watchlist, watchlist_id)
-    except ApiError as e:
-        log.error(f"couldn't find CbTH watchlist {watchlist_id}: {e}")
-        return
+    log.warning("Watching dispatch is not yet implemented")
+    # try:
+    #     watchlist = cbth().select(threathunter.Watchlist, watchlist_id)
+    # except ApiError as e:
+    #     log.error(f"couldn't find CbTH watchlist {watchlist_id}: {e}")
+    #     return
 
 
 def dispatch_result(result_ids):

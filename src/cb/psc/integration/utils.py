@@ -51,3 +51,7 @@ def cbth():
 def grouper(iterable, n, fillvalue=None):
     args = [iter(iterable)] * n
     return zip_longest(*args)
+
+
+def payload_to_iocs(payload):
+    return {}
