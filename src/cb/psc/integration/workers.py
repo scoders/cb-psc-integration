@@ -15,7 +15,7 @@ from rq_scheduler import Scheduler
 import cb.psc.integration.connector as connector
 from cb.psc.integration.config import config
 from cb.psc.integration.database import AnalysisResult, Binary, session
-from cb.psc.integration.utils import cbth, grouper, payload_to_iocs
+from cb.psc.integration.utils import cbth, grouper
 
 logging.basicConfig()
 log = logging.getLogger()
@@ -186,11 +186,12 @@ def dispatch_to_feed(feed_id, results):
     reports = []
     for result in results:
         rep_dict = {
+            "id": str(result.id),
             "timestamp": int(result.scan_time.timestamp()),
             "title": result.connector_name,
             "description": result.analysis_name,
             "severity": result.score,
-            "iocs": payload_to_iocs(result.payload),
+            "iocs_v2": [ioc.as_dict() for ioc in result.iocs],
         }
 
         report = cbth().create(threathunter.Report, rep_dict)

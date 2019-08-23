@@ -32,7 +32,6 @@ AnalyzeSchema = Schema(
 
 RetrieveAnalysesSchema = Schema({"hashes": And([str], len)})
 
-# TODO(ww): Validate individual items as well.
 RemoveAnalysesSchema = Schema(
     Or(
         {"kind": "hashes", "items": And([str], validators.sha256)},
@@ -51,7 +50,3 @@ def cbth():
 def grouper(iterable, n, fillvalue=None):
     args = [iter(iterable)] * n
     return zip_longest(*args)
-
-
-def payload_to_iocs(payload):
-    return {}

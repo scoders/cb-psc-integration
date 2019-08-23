@@ -1,6 +1,6 @@
 rule microsoft {
     meta:
-        score = 50
+        score = 5
     strings:
         $microsoft = "microsoft" nocase wide ascii
         $windows = "windows" nocase wide ascii

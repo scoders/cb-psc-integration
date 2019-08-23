@@ -1,7 +1,19 @@
+import enum
 import logging
 from datetime import datetime
 
-from sqlalchemy import JSON, Boolean, Column, DateTime, Integer, String, create_engine
+from sqlalchemy import (
+    JSON,
+    Boolean,
+    Column,
+    DateTime,
+    Enum,
+    ForeignKey,
+    Integer,
+    String,
+    create_engine,
+    orm
+)
 from sqlalchemy.exc import DatabaseError
 from sqlalchemy.ext.declarative import as_declarative
 from sqlalchemy.orm import scoped_session, sessionmaker
@@ -84,6 +96,38 @@ class Binary(Base):
         return f"{self.data_key}/refcount"
 
 
+class IOC(Base):
+    """
+    Models an indicator of compromise detected during an analysis.
+
+    Every IOC belongs to an AnalysisResult.
+    """
+
+    __tablename__ = "iocs"
+
+    class MatchType(str, enum.Enum):
+        Equality: str = "equality"
+        Regex: str = "regex"
+        Query: str = "query"
+
+    analysis_id = Column(
+        Integer, ForeignKey("analysis.id", deferrable=True, initially="DEFERRED"), nullable=False
+    )
+    match_type = Column(Enum(MatchType), nullable=False)
+    values = Column(JSON, nullable=False)
+    field = Column(String, nullable=True)
+    link = Column(String, nullable=True)
+
+    def as_dict(self):
+        return {
+            "id": str(self.id),
+            "match_type": self.match_type,
+            "values": list(self.values),
+            "field": self.field,
+            "link": self.link,
+        }
+
+
 class AnalysisResult(Base):
     """
     Models the result of an analysis performed by a connector.
@@ -91,7 +135,7 @@ class AnalysisResult(Base):
     Use :py:meth:`Connector.result` to create these models.
     """
 
-    __tablename__ = "results"
+    __tablename__ = "analysis"
     __table_args__ = (
         UniqueConstraint("sha256", "connector_name", "analysis_name", name="_result_uc"),
     )
@@ -144,13 +188,11 @@ class AnalysisResult(Base):
     :rtype: :py:class:`DateTime`
     """
 
-    payload = Column(JSON, default={}, nullable=False)
+    iocs = orm.relationship("IOC", backref="analysis", cascade="all, delete-orphan", lazy=False)
     """
-    An optional JSON payload produced by the analysis.
+    Any IOCs produced by this analysis.
 
-    Default: `{}`
-
-    :rtype: dict
+    :rtype: list
     """
 
     job_id = Column(String(36), nullable=False)
@@ -180,6 +222,11 @@ class AnalysisResult(Base):
         """
         # TODO(ww): This could probably be a relation instead.
         return Binary.from_hash(self.sha256)
+
+    def ioc(self, *, match_type=IOC.MatchType.Equality, values, field=None, link=None):
+        return IOC.create(
+            analysis=self, match_type=match_type, values=values, field=field, link=link
+        )
 
     def __str__(self):
         return f"{self.connector_name}:{self.analysis_name}:{self.sha256}"

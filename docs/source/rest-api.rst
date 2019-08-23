@@ -143,7 +143,6 @@ Which yields something like this:
               "error": false,
               "id": 3,
               "job_id": "d104e6e6-4cf4-45b7-9ec7-75cbdc771413",
-              "payload": {},
               "scan_time": "Thu, 18 Apr 2019 19:50:35 GMT",
               "score": 100,
               "sha256": "6f88fb88ffb0f1d5465c2826e5b4f523598b1b8378377c8378ffebc171bad18b"
@@ -154,7 +153,6 @@ Which yields something like this:
               "error": false,
               "id": 2,
               "job_id": "22c2d601-5fb9-41f5-9506-3d84410a39b5",
-              "payload": [],
               "scan_time": "Thu, 18 Apr 2019 19:50:20 GMT",
               "score": 10,
               "sha256": "6f88fb88ffb0f1d5465c2826e5b4f523598b1b8378377c8378ffebc171bad18b"
@@ -165,13 +163,6 @@ Which yields something like this:
               "error": false,
               "id": 1,
               "job_id": "22c2d601-5fb9-41f5-9506-3d84410a39b5",
-              "payload": [
-                {
-                  "data": "TQBpAGMAcgBvAHMAbwBmAHQA",
-                  "identifier": "$microsoft",
-                  "offset": 21050
-                }
-              ],
               "scan_time": "Thu, 18 Apr 2019 19:50:20 GMT",
               "score": 50,
               "sha256": "6f88fb88ffb0f1d5465c2826e5b4f523598b1b8378377c8378ffebc171bad18b"

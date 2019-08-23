@@ -64,16 +64,6 @@ class YaraConnector(Connector):
 
         results = []
         for match in matches:
-            strings = []
-            for string in match.strings:
-                strings.append(
-                    {
-                        "offset": string[0],
-                        "identifier": string[1],
-                        "data": b64encode(string[2]).decode(),
-                    }
-                )
-
             analysis_name = f"{match.namespace}:{match.rule}"
             score = match.meta.get("score")
             if score is None:
@@ -82,13 +72,11 @@ class YaraConnector(Connector):
                     f"{analysis_name} does not provide a score, using default score ({score})"
                 )
 
-            results.append(
-                self.result(
-                    binary,
-                    analysis_name=analysis_name,
-                    score=match.meta.get("score"),
-                    payload=strings,
-                )
-            )
+            result = self.result(binary, analysis_name=analysis_name, score=score)
+
+            for string in match.strings:
+                result.ioc(values=[b64encode(string[2]).decode()], field=string[1])
+
+            results.append(result)
 
         return results

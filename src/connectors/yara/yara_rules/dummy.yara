@@ -1,5 +1,5 @@
 rule dummy {
     meta:
-        score = 10
+        score = 1
     condition: true
 }
