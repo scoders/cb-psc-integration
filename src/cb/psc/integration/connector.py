@@ -127,7 +127,7 @@ class Connector(object):
 
         Example::
 
-        >>> self.result(analysis_name="foo", score=50)
+        >>> self.result(analysis_name="foo", score=10)
         """
         job = get_current_job()
         return AnalysisResult.create(

@@ -17,7 +17,7 @@ class YaraConfig(ConnectorConfig):
     error_on_warning: bool = True
     includes: bool = True
     timeout: int = 60
-    default_score: int = 100
+    default_score: int = 10
 
 
 class YaraConnector(Connector):
