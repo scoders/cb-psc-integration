@@ -100,7 +100,7 @@ class Connector(object):
                 log.warning(f"{self.name} couldn't read config, trying default")
                 return self.Config()
         else:
-            log.warn(f"config requested for a connector that doesn't have any")
+            log.warning(f"config requested for a connector that doesn't have any")
 
     @property
     def name(self):
@@ -130,9 +130,10 @@ class Connector(object):
         >>> self.result(analysis_name="foo", score=10)
         """
         job = get_current_job()
-        return AnalysisResult.create(
+        result = AnalysisResult.create(
             **kwargs, sha256=binary.sha256, connector_name=self.name, job_id=job.id
-        )
+        ).normalize()
+        return result
 
     def _analyze(self, binary):
         log.info(f"{self.name}: analyzing binary {binary.sha256}")

@@ -228,5 +228,11 @@ class AnalysisResult(Base):
             analysis=self, match_type=match_type, values=values, field=field, link=link
         )
 
+    def normalize(self):
+        if self.score < 0 or self.score > 10:
+            log.warning(f"normalizing OOB score: {self.score}")
+            self.update(score=max(0, min(self.score, 10)))
+        return self
+
     def __str__(self):
         return f"{self.connector_name}:{self.analysis_name}:{self.sha256}"
