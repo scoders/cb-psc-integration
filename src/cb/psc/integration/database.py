@@ -214,7 +214,7 @@ class AnalysisResult(Base):
         """
         Returns the :py:class:`database.Binary` associated with this result.
 
-        :rtype: :py:class:`database.Binary`.
+        :rtype: :py:class:`database.Binary`
 
         Example::
 
@@ -224,11 +224,28 @@ class AnalysisResult(Base):
         return Binary.from_hash(self.sha256)
 
     def ioc(self, *, match_type=IOC.MatchType.Equality, values, field=None, link=None):
+        """
+        Attaches a new IOC to this result.
+
+        :param match_type: The matching strategy for this IOC
+        :type match_type: :py:class:`database.IOC.MatchType`
+        :param values: The list of values for this IOC
+        :type values: list
+        :param field: The corresponding process field
+        :type field: str or None
+        :param link: A link to a description of the IOC
+        :type link: str or None
+        :rtype: :py:class:`database.IOC`
+
+        """
         return IOC.create(
             analysis=self, match_type=match_type, values=values, field=field, link=link
         )
 
     def normalize(self):
+        """
+        Normalizes this result to make it palatable for the CbTH backend.
+        """
         if self.score < 0 or self.score > 10:
             log.warning(f"normalizing OOB score: {self.score}")
             self.update(score=max(0, min(self.score, 10)))
