@@ -20,7 +20,7 @@ The simplest possible connector just overrides the `analyze` method:
         def analyze(self, binary, data):
             time.sleep(15)
 
-            return self.result(binary, analysis_name=self.name, score=100)
+            return [self.result(binary, analysis_name=self.name, score=100)]
 
 
 .. autoclass:: cb.psc.integration.connector.Connector

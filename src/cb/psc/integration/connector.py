@@ -20,7 +20,7 @@ class ConnectorConfig:
     The parent class for per-connector configuration.
 
     Individual connectors should assign their `Config` property to a subclass
-    of :py:class:`ConnectorConfig`.
+    of :class:`ConnectorConfig`.
     """
 
     def __init_subclass__(cls, *args, **kwargs):
@@ -64,7 +64,7 @@ class Connector(object):
         Returns this connector's singleton.
 
         :return: The singleton instance of this connector
-        :rtype: :py:class:`Connector`
+        :rtype: :class:`Connector`
         """
         if cls._instance is None:
             cls()
@@ -89,6 +89,9 @@ class Connector(object):
     def config(self):
         """
         Returns the configuration associated with this connector.
+
+        :return: The association config
+        :rtype: :class:`ConnectorConfig`
         """
         if self.Config:
             try:
@@ -120,10 +123,10 @@ class Connector(object):
         Returns a new AnalysisResult with the given fields populated, updating
         the database in the background.
 
-        This should be used within the :py:meth:`analyze` method to create
+        This should be used within the :meth:`analyze` method to create
         analysis results.
 
-        :rtype: :py:class:`AnalysisResult`
+        :rtype: :class:`AnalysisResult`
 
         Example::
 
@@ -162,9 +165,10 @@ class Connector(object):
         Overridden by individual connectors; called whenever a binary is ready to be
         analyzed.
 
-        May return either a single :py:class:`AnalysisResult` or a list of results.
+        Expected to return a list of :class:`AnalysisResult`.
         """
         log.warning("analyze() called on top-level Connector")
+        return []
 
 
 connectors = Connector.connectors
