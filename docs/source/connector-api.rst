@@ -29,6 +29,12 @@ The simplest possible connector just overrides the `analyze` method:
 .. autoclass:: cb.psc.integration.connector.ConnectorConfig
     :members:
 
+.. autoclass:: cb.psc.integration.database.IOC
+    :members:
+
+.. autoclass:: cb.psc.integration.database.IOC.MatchType
+    :members:
+
 .. autoclass:: cb.psc.integration.database.AnalysisResult
     :members:
 

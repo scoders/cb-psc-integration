@@ -106,6 +106,10 @@ class IOC(Base):
     __tablename__ = "iocs"
 
     class MatchType(str, enum.Enum):
+        """
+        Represents the valid matching strategies for an IOC.
+        """
+
         Equality: str = "equality"
         Regex: str = "regex"
         Query: str = "query"
