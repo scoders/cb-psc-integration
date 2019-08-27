@@ -11,7 +11,8 @@ export SUPERVISORD_LOGSINK
 all:
 	@echo "Run my targets individually!"
 
-prep: logs
+.PHONY: prep
+prep:
 	mkdir -p logs/
 
 .PHONY: serve
