@@ -17,7 +17,6 @@ from sqlalchemy import (
 from sqlalchemy.exc import DatabaseError
 from sqlalchemy.ext.declarative import as_declarative
 from sqlalchemy.orm import scoped_session, sessionmaker
-from sqlalchemy.schema import UniqueConstraint
 
 from cb.psc.integration.config import config
 
@@ -140,9 +139,6 @@ class AnalysisResult(Base):
     """
 
     __tablename__ = "analysis"
-    __table_args__ = (
-        UniqueConstraint("sha256", "connector_name", "analysis_name", name="_result_uc"),
-    )
 
     sha256 = Column(String(64), nullable=False)
     """
