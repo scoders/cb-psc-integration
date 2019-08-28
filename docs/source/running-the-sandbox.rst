@@ -3,43 +3,22 @@
 Running the Sandbox
 ===================
 
-Installing the Sandbox
-----------------------
+The easiest way to run the sandbox is with `docker` and `docker-compose`.
 
-The steps below document the sandbox's installation *for development or local testing purposes*.
-
-Start by installing some dependencies: you'll need ``redis-server`` and Python 3.7 or later.
-
-For systems with ``apt``:
+From within the repository root:
 
 .. code-block:: bash
 
-    sudo apt install redis-server python3.6 python3-setuptools
+    docker-compose up
 
-Then, clone the cb-psc-integration repository:
+This will run redis, PostgreSQL, and the sandbox in separate containers.
 
-.. code-block:: bash
+To rebuild the container after making changes to the sandbox:
 
-    git clone https://github.com/carbonblack/cb-psc-integration
-    cd cb-psc-integration
+.. code-block:: base
 
-Then, create a virtualenv and install the sandbox's Python dependencies into it:
+    docker-compose build
 
-.. code-block:: bash
-
-    python3 -m venv env
-    source env/bin/activate
-    python3 setup.py install
-
-Optionally, modify ``config.yml``. Refer to the Configuration API below for valid options.
-
-Finally, start everything with ``make``:
-
-.. code-block:: bash
-
-    make serve
-
-The REST API should now be available on :py:attr:`Config.flask_host` at port :py:attr:`Config.flask_port`.
 
 Configuration API
 -----------------
