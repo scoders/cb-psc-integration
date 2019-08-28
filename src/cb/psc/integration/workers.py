@@ -23,7 +23,7 @@ log.setLevel(config.loglevel)
 
 listen = ["binary_retrieval", "binary_analysis", "binary_cleanup", "result_dispatch"]
 
-redis = r.Redis(host=config.redis_host, port=config.redis_port)
+redis = r.Redis.from_url(config.redis_url)
 
 binary_retrieval = Queue("binary_retrieval", connection=redis)
 binary_analysis = Queue("binary_analysis", connection=redis)
@@ -86,9 +86,6 @@ def fetch_query(query, limit=None):
     to the given CbTH query.
     """
     log.debug(f"fetch_query: {query} (limit={limit})")
-
-    if not isinstance(query, str):
-        return
 
     try:
         processes = cbth().select(threathunter.Process).where(query)

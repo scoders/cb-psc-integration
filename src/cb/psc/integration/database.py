@@ -24,7 +24,7 @@ from cb.psc.integration.config import config
 log = logging.getLogger(__name__)
 log.setLevel(config.loglevel)
 
-engine = create_engine(config.database)
+engine = create_engine(config.database_url)
 session = scoped_session(sessionmaker(bind=engine))
 
 

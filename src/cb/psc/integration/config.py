@@ -68,26 +68,6 @@ class Config:
     The protocol and path to use for the result DB.
     """
 
-    flask_host: str = "localhost"
-    """
-    The hostname for the flask frontend.
-    """
-
-    flask_port: int = 5000
-    """
-    The port for the flask frontend.
-    """
-
-    redis_host: str = "localhost"
-    """
-    The hostname for the redis cache.
-    """
-
-    redis_port: int = 6379
-    """
-    The port for the redis cache.
-    """
-
     binary_timeout: Optional[int] = 60  # TODO(ww): Maybe default to None?
     """
     The maximum time allotted to each binary analysis task, or 0
@@ -109,6 +89,38 @@ class Config:
     """
     A mapping of connector names to result sink configurations.
     """
+
+    @property
+    @functools.lru_cache()
+    def database_url(self):
+        """
+        Returns a URL suitable for connecting to the binary analysis DB.
+        """
+        return os.getenv("DATABASE_URL")
+
+    @property
+    @functools.lru_cache()
+    def redis_url(self):
+        """
+        Returns a URL suitable for connecting to the redis cache.
+        """
+        return os.getenv("REDIS_URL")
+
+    @property
+    @functools.lru_cache()
+    def flask_host(self):
+        """
+        Returns the domain or IP that the flask frontend is running on.
+        """
+        return os.getenv("FLASK_HOST")
+
+    @property
+    @functools.lru_cache()
+    def flask_port(self):
+        """
+        Returns the port that the flask frontend is running on.
+        """
+        return os.getenv("FLASK_PORT")
 
     @property
     def is_development(self):
