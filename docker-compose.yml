@@ -4,14 +4,14 @@ services:
     image: "redis:alpine"
   postgres:
     image: "postgres:alpine"
+    restart: always
   sandbox:
     build: .
     volumes:
       - ./configs/docker.yml:/cb/config.yml
     env_file:
+      - ./configs/development.env
       - ./configs/docker.env
-    environment:
-      - ENVIRONMENT=development
     ports:
       - "5000:5000"
     links:

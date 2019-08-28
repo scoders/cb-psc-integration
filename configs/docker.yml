@@ -1,5 +1,3 @@
-environment: development
-loglevel: DEBUG
 cbth_profile: default
 connector_dirs:
   - /usr/share/cb/integrations

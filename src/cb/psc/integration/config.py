@@ -48,16 +48,6 @@ class Config:
     Each connector has its own, unrelated, configuration object.
     """
 
-    environment: str = "production"
-    """
-    The kind of running environment.
-    """
-
-    loglevel: str = "INFO"
-    """
-    The :py:mod:`logging` loglevel to use.
-    """
-
     cbth_profile: str = "default"
     """
     The credential profile to use when interacting with CBAPI/cbapi-python.
@@ -92,11 +82,24 @@ class Config:
 
     @property
     @functools.lru_cache()
+    def environment(self):
+        return os.environ.get("ENVIRONMENT", "production")
+
+    @property
+    @functools.lru_cache()
+    def loglevel(self):
+        """
+        Returns a loglevel suitable for :py:mod:`logging`.
+        """
+        return os.environ.get("LOGLEVEL", "INFO")
+
+    @property
+    @functools.lru_cache()
     def database_url(self):
         """
         Returns a URL suitable for connecting to the binary analysis DB.
         """
-        return os.getenv("DATABASE_URL")
+        return os.environ.get("DATABASE_URL")
 
     @property
     @functools.lru_cache()
@@ -104,7 +107,7 @@ class Config:
         """
         Returns a URL suitable for connecting to the redis cache.
         """
-        return os.getenv("REDIS_URL")
+        return os.environ.get("REDIS_URL")
 
     @property
     @functools.lru_cache()
@@ -112,7 +115,7 @@ class Config:
         """
         Returns the domain or IP that the flask frontend is running on.
         """
-        return os.getenv("FLASK_HOST")
+        return os.environ.get("FLASK_HOST")
 
     @property
     @functools.lru_cache()
@@ -120,7 +123,7 @@ class Config:
         """
         Returns the port that the flask frontend is running on.
         """
-        return os.getenv("FLASK_PORT")
+        return os.environ.get("FLASK_PORT")
 
     @property
     def is_development(self):
@@ -158,9 +161,6 @@ class Config:
         Creates a :py:class:`Config` object from a `config.yml` file present
         at the root of the binary analysis SDK's source tree.
         """
-        if os.getenv("ENVIRONMENT") == "development":
-            log.info("ENVIRONMENT=development set")
-
         config_filename = os.path.join(os.path.dirname(__file__), "../../../../config.yml")
         if not os.path.isfile(config_filename):
             log.warning("no config file found, using default production config")
