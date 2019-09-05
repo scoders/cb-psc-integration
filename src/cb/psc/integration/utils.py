@@ -34,7 +34,7 @@ RetrieveAnalysesSchema = Schema({"hashes": And([str], len)})
 
 RemoveAnalysesSchema = Schema(
     Or(
-        {"kind": "hashes", "items": And([str], validators.sha256)},
+        {"kind": "hashes", "items": And([str], [validators.sha256])},
         {"kind": "connector_names", "items": And([str], len)},
         {"kind": "analysis_names", "items": And([str], len)},
         {"kind": "job_ids", "items": And([str], len)},
