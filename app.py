@@ -53,8 +53,10 @@ def remove_job(req):
     except SchemaError as e:
         abort(400, str(e))
 
-    workers.scheduled_retrieval.cancel(req["job_id"])
+    if req["job_id"] not in workers.scheduled_retrieval:
+        abort(404, "no such job")
 
+    workers.scheduled_retrieval.cancel(req["job_id"])
     return jsonify(success=True)
 
 
