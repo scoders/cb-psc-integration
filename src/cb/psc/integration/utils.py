@@ -3,9 +3,10 @@ import logging
 from itertools import zip_longest
 
 import cbapi.psc.threathunter as threathunter
+import dateutil.parser
 import validators
 from croniter import croniter
-from schema import And, Optional, Or, Schema
+from schema import And, Optional, Or, Schema, Use
 
 from cb.psc.integration.config import config
 
@@ -22,6 +23,8 @@ AddJobSchema = Schema(
 )
 
 RemoveJobSchema = Schema({"job_id": And(str, len)})
+
+GetJobsSchema = Schema({"until": Or("forever", And(str, Use(dateutil.parser.parse)))})
 
 AnalyzeSchema = Schema(
     Or(

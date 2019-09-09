@@ -9,6 +9,7 @@ from cb.psc.integration.config import config
 from cb.psc.integration.utils import (
     AddJobSchema,
     AnalyzeSchema,
+    GetJobsSchema,
     RemoveAnalysesSchema,
     RemoveJobSchema,
     RetrieveAnalysesSchema
@@ -24,6 +25,22 @@ app = Flask(__name__)
 def remove_session(ex=None):
     database.session.commit()
     database.session.remove()
+
+
+def get_jobs(req):
+    log.debug(f"get_jobs: {req}")
+
+    try:
+        req = GetJobsSchema.validate(req)
+    except SchemaError as e:
+        abort(400, str(e))
+
+    if req["until"] == "forever":
+        req["until"] = None
+
+    jobs = workers.scheduled_retrieval.get_jobs(until=req["until"], with_times=True)
+    job_dicts = [{"job_id": job.id, "at": str(exc_time)} for job, exc_time in jobs]
+    return jsonify(success=True, jobs=job_dicts)
 
 
 def add_job(req):
@@ -60,12 +77,14 @@ def remove_job(req):
     return jsonify(success=True)
 
 
-@app.route("/job", methods=["POST", "DELETE"])
+@app.route("/job", methods=["GET", "POST", "DELETE"])
 def job():
     req = request.get_json(force=True)
     log.debug(f"/job: {req!r}")
 
-    if request.method == "POST":
+    if request.method == "GET":
+        return get_jobs(req)
+    elif request.method == "POST":
         return add_job(req)
     elif request.method == "DELETE":
         return remove_job(req)
