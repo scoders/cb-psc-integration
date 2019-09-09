@@ -106,6 +106,9 @@ Where:
 * ``job_id`` is the unique job identifier previously returned by scheduled query creation
 
 On failure (schema mismatch), ``/analyze`` returns an HTTP 400.
+
+On an unknown or already executed ``job_id``, ``/analyze`` returns an HTTP 404.
+
 In all other cases, ``/analyze`` returns ``{"success": true}``.
 
 Retrieving results
