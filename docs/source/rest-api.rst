@@ -80,7 +80,7 @@ On success, ``/job`` will return a payload with the following schema:
 .. code-block::
 
     {
-        "success": "true",
+        "success": true,
         "job_id": <string>,
     }
 
@@ -88,6 +88,40 @@ On success, ``/job`` will return a payload with the following schema:
 Where:
 
 * ``job_id`` is a unique identifier for the underlying job
+
+Retrieving upcoming scheduled queries
+-------------------------------------
+
+Scheduled queries added via a ``POST`` to ``/job`` can be retrieved via a ``GET`` to the
+same endpoint with the following schema:
+
+.. code-block::
+
+    {
+        "until": "forever" | <date string>
+    }
+
+Where:
+
+* ``until`` is the latest date to search against, or ``"forever"`` to consider all future
+queries.
+
+Scheduled query retrieval only returns the **next** scheduled query for each job, not all
+scheduled queries in the range ``[now, until)``.
+
+On success, ``/job`` will return a payload with the following schema:
+
+.. code-block::
+
+    {
+        "success": true,
+        [
+            {
+                "job_id": <string>,
+                "at": <date string>,
+            }
+        ]
+    }
 
 Removing a scheduled query
 --------------------------
@@ -103,7 +137,8 @@ same endpoint with the following schema:
 
 Where:
 
-* ``job_id`` is the unique job identifier previously returned by scheduled query creation
+* ``job_id`` is the unique job identifier previously returned by scheduled query creation or a ``GET``
+to ``/job``. Canceling either will cancel all future jobs.
 
 On failure (schema mismatch), ``/analyze`` returns an HTTP 400.
 
