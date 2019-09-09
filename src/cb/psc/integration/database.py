@@ -251,5 +251,8 @@ class AnalysisResult(Base):
             self.update(score=max(0, min(self.score, 10)))
         return self
 
+    def as_dict(self):
+        return {"iocs": [ioc.as_dict() for ioc in self.iocs], **super().as_dict()}
+
     def __str__(self):
         return f"{self.connector_name}:{self.analysis_name}:{self.sha256}"
