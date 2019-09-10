@@ -153,11 +153,12 @@ def remove_analyses(req):
     else:
         return jsonify(success=False, message="Unknown removal kind")
 
-    # TODO(ww): Probably not very efficient, doing
-    # this on the __table__ would probably be a bit
-    # faster.
-    results = database.AnalysisResult.query.filter(query)
-    results.delete(synchronize_session=False)
+    results = database.AnalysisResult.query.filter(query).all()
+    # TODO(ww): This is probably slower than it needs to be, but
+    # query.delete() bypasses the CASCADE relationship established in
+    # the ORM with our IOCs.
+    for result in results:
+        database.session.delete(result)
 
     return jsonify(success=True)
 
