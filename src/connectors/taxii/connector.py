@@ -1,4 +1,5 @@
 import logging
+import traceback
 import os
 from functools import lru_cache
 from pathlib import Path
@@ -36,6 +37,7 @@ class TaxiiConnector(Connector):
     Config = TaxiiConfig
     name = "taxii"
 
+    # TODO: add try and except
     def create_taxii_client(self):
         conf = self.config
         
@@ -62,29 +64,42 @@ class TaxiiConnector(Connector):
         self.client = client
 
 
-    def query_collections(self):
-        conf = self.config
+    def create_uri(self, config_path):
         uri = None
-
-        if conf.collection_management_path:
-            if conf.use_https:
+        if config_path and self.config.site:
+            if self.config.use_https:
                 uri = 'https://'
             else:
                 uri = 'http://'
-            uri = uri + conf.site + conf.collection_management_path
+            uri = uri + self.config.site + config_path
+        return uri        
 
+
+    # TODO: add try and except
+    def query_collections(self):
+        uri = self.create_uri(self.config.collection_management_path)
         collections = self.client.get_collections(uri=uri) # autodetect if uri=None
         for collection in collections:
             logger.info(f"Collection Name: {collection.name}, Collection Type: {collection.type}")
-        
         return collections
 
     
     def import_collection(self, collection):
+        reports = []
+        uri = self.create_uri(self.config.poll_path)
+
+        while True:
+            num_times_empty_content_blocks = 0
+            try:
+                #TODO: resume
+            except Exception as e:
+                logger.info(traceback.format_exc())
+            
         data_set = False
         if collection.type == 'DATA_SET':
             data_set = True
 
+        
 
     def import_collections(self, available_collections):
         desired_collections = self.config.collections
@@ -96,6 +111,8 @@ class TaxiiConnector(Connector):
 
         for collection in available_collections:
             if collection.type != 'DATA_FEED' and collection.type != 'DATA_SET':
+                continue
+            if not collection.available:
                 continue
             if want_all or collection.name.lower() in desired_collections:
                 self.import_collection(collection)
