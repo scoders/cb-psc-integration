@@ -12,3 +12,6 @@ result_sinks:
   # yara:
   #   kind: watchlist
   #   id: some_watchlist_id
+  taxii:
+    kind: feed
+    id: WurBK7L4Tm6SqJobP1lBUw
