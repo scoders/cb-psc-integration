@@ -249,16 +249,16 @@ The list of all binary hashes analyzed (or currently being analyzed) by the sand
 be retrieved via a ``GET`` to ``/hashes``. No arguments or body is required.
 
 
-Example::
+Example:
 
 .. code-block:: bash
 
     curl -XGET http://localhost:5000/hashes
 
-Yields::
+Yields:
 
 .. code-block:: json
 
     [
-      "6f88fb88ffb0f1d5465c2826e5b4f523598b1b8378377c8378ffebc171bad18b",
+        "6f88fb88ffb0f1d5465c2826e5b4f523598b1b8378377c8378ffebc171bad18b",
     ]
