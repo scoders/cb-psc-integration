@@ -5,6 +5,8 @@ from functools import lru_cache
 from pathlib import Path
 from cabby import create_client
 from datetime import datetime, timedelta
+from stix.core import STIXPackage
+from stix_parse import sanitize_stix, parse_stix
 from cb.psc.integration.connector import Connector, ConnectorConfig
 
 from cabby.constants import (
@@ -54,7 +56,7 @@ class FeedHelper():
 
 
     def advance(): 
-
+        #TODO
 
 
 class TaxiiConnector(Connector):
@@ -129,33 +131,21 @@ class TaxiiConnector(Connector):
         return content_blocks
 
 
-    def parse_collection_content_block(self, block_content):
-        #TODO 
-
-    
-    def parse_collection_content(self, content):
+    def parse_collection_content(self, content_blocks):
+        reports = []
         for block in content_blocks:
-            try:
-                self.parse_collection_content_block(block.content)
-             except Exception as e:
-                logger.info(e.message)
-                continue
-
+            reports.extend(parse_stix(block.content, self.config.default_score))
+        return reports
 
 
     def import_collection(self, collection):
         reports = []
         reports_limit = self.config.reports_limit
 
-        data_set = False
-        if collection.type == 'DATA_SET':
-            data_set = True
-
         while True:
-            num_times_empty_content_blocks = 0
             try:
-                content_blocks = self.poll_server(collection)
-                self.parse_collection_content(content_blocks)
+                content_blocks = self.poll_server(collection)   #TODO: prevent infinite loop with poll always failing
+                reports.extend(self.parse_collection_content(content_blocks))
                 if len(reports) > reports_limit:
                     logger.info("We have reached the reports limit of {reports_limit}")
                     break
@@ -163,7 +153,7 @@ class TaxiiConnector(Connector):
             except Exception as e:
                 logger.info(traceback.format_exc())
             
-            if data_set: # data is unordered
+            if collection.type == 'DATA_SET': # data is unordered, not a feed
                 break 
             
             if self.feed_helper.advance():
@@ -188,13 +178,16 @@ class TaxiiConnector(Connector):
         if '*' in desired_collections:
             want_all = True
 
+        reports = []
         for collection in available_collections:
             if collection.type != 'DATA_FEED' and collection.type != 'DATA_SET':
                 continue
             if not collection.available:
                 continue
             if want_all or collection.name.lower() in desired_collections:
-                self.import_collection(collection)
+               reports.extend(self.import_collection(collection))
+
+        return reports
         
 
     def analyze(self, binary, data):   # TODO:ignoring binary for now
