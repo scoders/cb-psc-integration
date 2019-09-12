@@ -3,11 +3,13 @@ from cybox.objects.address_object import Address
 from cybox.objects.file_object import File
 from lxml import etree
 from io import StringIO
+from stix.core import STIXPackage
 
 import logging
 import string
 import socket
 import uuid
+import time
 
 from cabby.constants import (
     CB_STIX_XML_111, CB_CAP_11, CB_SMIME,
@@ -219,43 +221,53 @@ def cybox_parse_observable(observable, indicator, timestamp, score):
 
 
 
+def get_stix_indicator_score(indicator, default_score):
+    if not indicator.confidence:
+        return default_score
+
+    confidence_val_str = str(indicator.confidence.value)
+    if confidence_val_str.isdigit():
+        score = int(indicator.confidence.to_dict().get("value", default_score))
+        return score
+    if confidence_val_str.lower() == "high":
+        return 75
+    if confidence_val_str.lower() == "medium":
+        return 50
+    if confidence_val_str.lower() == "low":
+        return 25
+    
+    return default_score
+
+
+def get_stix_indicator_timestamp(indicator):
+    timestamp = 0
+    if indicator.timestamp:
+        timestamp = int((indicator.timestamp -
+                         datetime.datetime(1970, 1, 1).replace(
+                             tzinfo=dateutil.tz.tzutc())).total_seconds())
+    return timestamp
+
+
+def get_stix_package_timestamp(stix_package):
+    try:
+        timestamp = stix_package.timestamp
+        timestamp = int(time.mktime(timestamp.timetuple()))
+    except Exception as e:
+        logger.info(e.message)
+        timestamp = 0
+    return timestamp
+
+
 def parse_stix_indicators(stix_package, default_score):
     reports = []
-
     if not stix_package.indicators:
         return reports
 
     for indicator in stix_package.indicators:
-
         if not indicator or not indicator.observable:
             continue
-
-        if indicator.confidence:
-
-            if str(indicator.confidence.value).isdigit():
-                #
-                # Get the confidence score and use it for our score
-                #
-                score = int(indicator.confidence.to_dict().get("value", default_score))
-            else:
-                if str(indicator.confidence.value).lower() == "high":
-                    score = 75
-                elif str(indicator.confidence.value).lower() == "medium":
-                    score = 50
-                elif str(indicator.confidence.value).lower() == "low":
-                    score = 25
-                else:
-                    score = default_score
-        else:
-            score = default_score
-
-        if not indicator.timestamp:
-            timestamp = 0
-        else:
-            timestamp = int((indicator.timestamp -
-                             datetime.datetime(1970, 1, 1).replace(
-                                 tzinfo=dateutil.tz.tzutc())).total_seconds())
-
+        score = get_stix_indicator_score(indicator)
+        timestamp = get_stic_indicator_timestamp(indicator)
         reports.extend(
             cybox_parse_observable(indicator.observable, indicator, timestamp, score))
 
@@ -266,10 +278,13 @@ def parse_stix_observables(stix_package, default_score):
     reports = []
     if not stix_package.observables:
         return reports
+    
+    timestamp = get_stix_package_timestamp(stix_package)
     for observable in stix_package.observables:
         if not observable:
             continue
         reports.extend(cybox_parse_observable(observable, None, timestamp, default_score))
+
     return reports
 
 
@@ -293,7 +308,6 @@ def parse_stix(stix_xml, default_score):
         stix_package = STIXPackage.from_xml(StringIO(stix_xml))
         if not stix_package.indicators and not stix_package.observables:
             return reports
-        #TODO resume
         reports.extend(parse_stix_indicators(stix_package, default_score))
         reports.extend(parse_stix_observables(stix_package, default_score))
     except Exception as e:
