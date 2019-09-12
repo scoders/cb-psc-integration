@@ -6,18 +6,9 @@ from pathlib import Path
 from cabby import create_client
 from datetime import datetime, timedelta
 from stix.core import STIXPackage
-from stix_parse import sanitize_stix, parse_stix
+from stix_parse import sanitize_stix, parse_stix, BINDING_CHOICES
+from feed_helper import FeedHelper
 from cb.psc.integration.connector import Connector, ConnectorConfig
-
-from cabby.constants import (
-    CB_STIX_XML_111, CB_CAP_11, CB_SMIME,
-    CB_STIX_XML_10, CB_STIX_XML_101, CB_STIX_XML_11, CB_XENC_122002)
-
-CB_STIX_XML_12 = 'urn:stix.mitre.org:xml:1.2'
-
-BINDING_CHOICES = [CB_STIX_XML_111, CB_CAP_11, CB_SMIME, CB_STIX_XML_12,
-                   CB_STIX_XML_10, CB_STIX_XML_101, CB_STIX_XML_11,
-                   CB_XENC_122002]
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
@@ -42,21 +33,8 @@ class TaxiiConfig(ConnectorConfig):
     http_proxy_url: str = None
     https_proxy_url: str = None
     reports_limit: int = 10000
-
-class FeedHelper():
-    def __init__(self, start_date_str, minutes_to_advance):
-        self.minutes_to_advance = minutes_to_advance
-        self.start_date = datetime.strptime(
-             start_date_str,"%Y-%m-%d %H:%M:%S").replace(tzinfo=TZ_UTC)
-        self.end_date = self.start_date + timedelta(minutes=self.minutes_to_advance)
-        self.done = False
-        self.now = datetime.utcnow().replace(tzinfo=TZ_UTC)
-        if self.end_date > self.now:
-            self.end_date = self.now
-
-
-    def advance(): 
-        #TODO
+    fail_limit: int = 10   # num attempts per collection for 
+                           # polling server and parsing stix content
 
 
 class TaxiiConnector(Connector):
@@ -64,36 +42,33 @@ class TaxiiConnector(Connector):
     name = "taxii"
 
 
-    def create_feed_helper(self):
-        self.feed_helper = FeedHelper(self.config.start_date,
-                                      self.config.minutes_to_advance)
-
-
-    # TODO: add try and except
+    # TODO: better exception handling
     def create_taxii_client(self):
-        conf = self.config
+        self.client = None
+        try:
+            conf = self.config
+            client = create_client(conf.site,
+                                   use_https=conf.use_https,
+                                   discover_path=conf.discovery_path)
+            client.set_auth(username=conf.username,
+                            password=conf.password,
+                            verify_ssl=conf.ssl_verify,
+                            ca_cert=conf.ca_cert,
+                            cert_file=conf.cert_file,
+                            key_file=conf.key_file)
         
-        client = create_client(conf.site,
-                               use_https=conf.use_https,
-                               discover_path=conf.discovery_path)
-        
-        client.set_auth(username=conf.username,
-                        password=conf.password,
-                        verify_ssl=conf.ssl_verify,
-                        ca_cert=conf.ca_cert,
-                        cert_file=conf.cert_file,
-                        key_file=conf.key_file)
+            proxy_dict = dict()
+            if conf.http_proxy_url:
+                proxy_dict['http'] = conf.http_proxy_url
+            if conf.https_proxy_url:
+                proxy_dict['https'] = conf.https_proxy_url
+            if proxy_dict:
+                client.set_proxies(proxy_dict)
+            
+            self.client = client
 
-    
-        proxy_dict = dict()
-        if conf.http_proxy_url:
-            proxy_dict['http'] = conf.http_proxy_url
-        if conf.https_proxy_url:
-            proxy_dict['https'] = conf.https_proxy_url
-        if proxy_dict:
-            client.set_proxies(proxy_dict)
-
-        self.client = client
+        except Exception as e:
+            logger.info(e.message)
 
 
     def create_uri(self, config_path):
@@ -107,27 +82,31 @@ class TaxiiConnector(Connector):
         return uri        
 
 
-    # TODO: add try and except
+    # TODO: better exception handling
     def query_collections(self):
-        uri = self.create_uri(self.config.collection_management_path)
-        collections = self.client.get_collections(uri=uri) # autodetect if uri=None
-        for collection in collections:
-            logger.info(f"Collection Name: {collection.name}, Collection Type: {collection.type}")
+        collections = []
+        try:
+            uri = self.create_uri(self.config.collection_management_path)
+            collections = self.client.get_collections(uri=uri) # autodetect if uri=None
+            for collection in collections:
+                logger.info(f"Collection Name: {collection.name}, Collection Type: {collection.type}")
+        except Exception as e:
+            logger.info(e.message)
         return collections
 
 
-    def poll_server(self, collection):
+    def poll_server(self, collection, feed_helper):
+        content_blocks = []
         uri = self.create_uri(self.config.poll_path)
         try:
             logger.info(f"Polling Collection: {collection.name}")
             content_blocks = client.poll(uri=uri,
                                          collection_name=collection.name,
-                                         begin_date=self.feed_helper.start_date,
-                                         end_date=self.feed_helper.end_date,
+                                         begin_date=feed_helper.start_date,
+                                         end_date=feed_helper.end_date,
                                          content_bindings=BINDING_CHOICES)
         except Exception as e:
             logger.info(e.message)
-            content_blocks = []
         return content_blocks
 
 
@@ -139,36 +118,32 @@ class TaxiiConnector(Connector):
 
 
     def import_collection(self, collection):
+        num_fail = 0
         reports = []
         reports_limit = self.config.reports_limit
+        feed_helper = FeedHelper(self.config.start_date,
+                                 self.config.minutes_to_advance)
 
-        while True:
-            try:
-                content_blocks = self.poll_server(collection)   #TODO: prevent infinite loop with poll always failing
-                reports.extend(self.parse_collection_content(content_blocks))
-                if len(reports) > reports_limit:
-                    logger.info("We have reached the reports limit of {reports_limit}")
-                    break
-
-            except Exception as e:
-                logger.info(traceback.format_exc())
-            
+        while feed_helper.advance():  
+            content_blocks = self.poll_server(collection, feed_helper)  
+            _reports = self.parse_collection_content(content_blocks)
+            if not _reports:
+                num_fail += 1
+            else:
+                reports.extend(_reports)
+            if len(reports) > reports_limit:
+                logger.info("We have reached the reports limit of {reports_limit}")
+                break
             if collection.type == 'DATA_SET': # data is unordered, not a feed
                 break 
-            
-            if self.feed_helper.advance():
-                continue
-            else:
-                break
+            if num_fail > fail_limit:   # to prevent infinite loop
+                break            
 
         if len(reports) > reports_limit
             logger.info("Truncating reports to length {reports_limit}")
             reports = reports[:reports_limit]
-
         return reports
             
-
-        
 
     def import_collections(self, available_collections):
         desired_collections = self.config.collections
@@ -192,17 +167,17 @@ class TaxiiConnector(Connector):
 
     def analyze(self, binary, data):   # TODO:ignoring binary for now
         results = []
-    
-        self.create_feed_helper()
 
         self.create_taxii_client()  # TODO: make this part of init, not analyze
                                     # assuming analyze is called repeatedly
+        if not self.client:
+            logger.info('Unable to create taxii client.  Exiting...')
+            return results
         
         available_collections = self.query_collections()
-        if len(available_collections) == 0:
+        if not available_collections:
             logger.info('Unable to find any collections.  Exiting...')
             return results
 
         results = self.import_collections(available_collections)
-
         return results
