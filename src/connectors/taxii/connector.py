@@ -1,11 +1,7 @@
 import logging
 import traceback
-import os
 from functools import lru_cache
-from pathlib import Path
 from cabby import create_client
-from datetime import datetime, timedelta
-from stix.core import STIXPackage
 from stix_parse import sanitize_stix, parse_stix, BINDING_CHOICES
 from feed_helper import FeedHelper
 from cb.psc.integration.connector import Connector, ConnectorConfig
@@ -163,21 +159,43 @@ class TaxiiConnector(Connector):
                reports.extend(self.import_collection(collection))
 
         return reports
-        
+       
+    
+    def format_report(self, report, binary): 
+        try:
+            analysis_name = f"{report['title']};{report['id']}" 
+            scan_time = report['timestamp']
+            score = report['score']
+            link = report['link']
+            ioc_dict = report['iocs']
+            result = self.result(binary,
+                                 analysis_name=analysis_name,
+                                 scan_time=scan_time
+            for ioc_key, ioc_val in ioc_dict.items():
+                result.ioc(values=ioc_val, field=ioc_key, link=link)
+        except Exception as e:
+            logger.info(e.message)
+            result = self.result(binary, analysis_name="exception_format_report", error=True)
+        return result
+
 
     def analyze(self, binary, data):   # TODO:ignoring binary for now
-        results = []
-
         self.create_taxii_client()  # TODO: make this part of init, not analyze
                                     # assuming analyze is called repeatedly
         if not self.client:
             logger.info('Unable to create taxii client.  Exiting...')
-            return results
+            return self.result(binary, analysis_name="exception_taxii_client", error=True)
         
         available_collections = self.query_collections()
         if not available_collections:
             logger.info('Unable to find any collections.  Exiting...')
-            return results
+            return self.result(binary, analysis_name="exception_query_collections", error=True)
 
-        results = self.import_collections(available_collections)
+        reports = self.import_collections(available_collections)
+        if not reports:
+            return self.result(binary, analysis_name="exception_import_collections", error=True)
+            
+        results = []
+        for report in reports:
+            results.append(self.format_report(binary, report))
         return results
