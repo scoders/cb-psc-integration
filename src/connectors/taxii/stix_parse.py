@@ -9,6 +9,17 @@ import string
 import socket
 import uuid
 
+from cabby.constants import (
+    CB_STIX_XML_111, CB_CAP_11, CB_SMIME,
+    CB_STIX_XML_10, CB_STIX_XML_101, CB_STIX_XML_11, CB_XENC_122002)
+
+CB_STIX_XML_12 = 'urn:stix.mitre.org:xml:1.2'
+
+BINDING_CHOICES = [CB_STIX_XML_111, CB_CAP_11, CB_SMIME, CB_STIX_XML_12,
+                   CB_STIX_XML_10, CB_STIX_XML_101, CB_STIX_XML_11,
+                   CB_XENC_122002]
+
+
 logger = logging.getLogger(__name__)
 
 #
