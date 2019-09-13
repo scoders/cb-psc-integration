@@ -2,7 +2,7 @@ from cybox.objects.domain_name_object import DomainName
 from cybox.objects.address_object import Address
 from cybox.objects.file_object import File
 from lxml import etree
-from io import StringIO
+from io import BytesIO
 from stix.core import STIXPackage
 
 import logging
@@ -10,6 +10,9 @@ import string
 import socket
 import uuid
 import time
+import datetime
+import dateutil
+import dateutil.tz
 
 from cabby.constants import (
     CB_STIX_XML_111, CB_CAP_11, CB_SMIME,
@@ -103,7 +106,9 @@ def cybox_parse_observable(observable, indicator, timestamp, score):
 
     if observable.object_ and observable.object_.properties:
         props = observable.object_.properties
+        logger.debug(f"{indicator} has props type: {type(props)}")
     else:
+        logger.debug(f"{indicator} has no props; skipping")
         return reports
 
     #
@@ -144,6 +149,8 @@ def cybox_parse_observable(observable, indicator, timestamp, score):
 
 
     if type(props) == DomainName:
+        logger.debug(f"parsing DomainName: {props.value}")
+        
         if props.value and props.value.value:
             iocs = {'dns': []}
             #
@@ -156,7 +163,9 @@ def cybox_parse_observable(observable, indicator, timestamp, score):
                         iocs['dns'].append(domain_name.strip())
             else:
                 domain_name = props.value.value.strip()
+                logger.debug(f"validating domain_name: {domain_name}")
                 if validate_domain_name(domain_name):
+                    logger.debug(f"validation passed")
                     iocs['dns'].append(domain_name)
 
             if len(iocs['dns']) > 0:
@@ -169,6 +178,7 @@ def cybox_parse_observable(observable, indicator, timestamp, score):
                                 'score': score})
 
     elif type(props) == Address:
+        logger.debug(f"parsing Address: {props.address_value}, {props.category}, {props.address_value.value}")
         if props.category == 'ipv4-addr' and props.address_value:
             iocs = {'ipv4': []}
 
@@ -181,7 +191,9 @@ def cybox_parse_observable(observable, indicator, timestamp, score):
                         iocs['ipv4'].append(ip.strip())
             else:
                 ipv4 = props.address_value.value.strip()
+                logger.debug(f"validating IP: {ipv4}")
                 if validate_ip_address(ipv4):
+                    logger.debug(f"validation passed")
                     iocs['ipv4'].append(ipv4)
 
             if len(iocs['ipv4']) > 0:
@@ -216,6 +228,8 @@ def cybox_parse_observable(observable, indicator, timestamp, score):
                                 'timestamp': timestamp,
                                 'link': link,
                                 'score': score})
+
+    logger.debug(f"sending reports: {reports}")
 
     return reports
 
@@ -264,12 +278,19 @@ def parse_stix_indicators(stix_package, default_score):
         return reports
 
     for indicator in stix_package.indicators:
+        logger.debug(f"parsing indicator: {indicator}")
         if not indicator or not indicator.observable:
+            logger.debug(f"no indicator observable; skipping")
             continue
-        score = get_stix_indicator_score(indicator)
-        timestamp = get_stic_indicator_timestamp(indicator)
-        reports.extend(
-            cybox_parse_observable(indicator.observable, indicator, timestamp, score))
+        score = get_stix_indicator_score(indicator, default_score)
+        timestamp = get_stix_indicator_timestamp(indicator)
+        logger.debug(f"indicator ts and score: {indicator}, {timestamp}, {score}")
+        report = cybox_parse_observable(indicator.observable, indicator, timestamp, score)
+        reports.extend(report)
+        logger.debug(f"got report: {report}")
+        if report:
+            logger.debug(f"breaking")
+            break   #TODO: remove
 
     return reports
 
@@ -283,7 +304,12 @@ def parse_stix_observables(stix_package, default_score):
     for observable in stix_package.observables:
         if not observable:
             continue
-        reports.extend(cybox_parse_observable(observable, None, timestamp, default_score))
+        report = cybox_parse_observable(observable, None, timestamp, default_score)
+        reports.extend(report)
+        logger.debug(f"got report: {report}")
+        if report:
+            logger.debug(f"breaking")
+            break   #TODO: remove
 
     return reports
 
@@ -305,12 +331,13 @@ def parse_stix(stix_xml, default_score):
     reports = []
     try:
         stix_xml = sanitize_stix(stix_xml)
-        stix_package = STIXPackage.from_xml(StringIO(stix_xml))
+        stix_package = STIXPackage.from_xml(BytesIO(stix_xml))
         if not stix_package.indicators and not stix_package.observables:
+            logger.info("No indicators or observables found in stix_xml")
             return reports
         reports.extend(parse_stix_indicators(stix_package, default_score))
         reports.extend(parse_stix_observables(stix_package, default_score))
     except Exception as e:
-        logger.info(e.message)
+        logger.info(e)
     return reports
 

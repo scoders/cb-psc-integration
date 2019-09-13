@@ -246,9 +246,10 @@ class AnalysisResult(Base):
         """
         Normalizes this result to make it palatable for the CbTH backend.
         """
-        if self.score < 0 or self.score > 10:
+        if self.score <= 0 or self.score > 10:
             log.warning(f"normalizing OOB score: {self.score}")
-            self.update(score=max(0, min(self.score, 10)))
+            self.update(score=max(1, min(self.score, 10)))
+            # else err 400 from cbapi: Report severity must be between 1 and 10
         return self
 
     def as_dict(self):

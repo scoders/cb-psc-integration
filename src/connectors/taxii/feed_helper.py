@@ -17,7 +17,8 @@ class FeedHelper():
     def __init__(self, start_date, minutes_to_advance):
         TZ_UTC = UTC()
         self.minutes_to_advance = minutes_to_advance
-        self.start_date = start_date.replace(tzinfo=TZ_UTC)
+        self.start_date = start_date.replace(tzinfo=TZ_UTC) 
+            #TODO: could replace this by dateutil.tz.tzutc())
         self.end_date = self.start_date + timedelta(minutes=self.minutes_to_advance)
         self.now = datetime.utcnow().replace(tzinfo=TZ_UTC)
         if self.end_date > self.now:
