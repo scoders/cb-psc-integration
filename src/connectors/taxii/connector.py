@@ -2,8 +2,8 @@ import logging
 import traceback
 from functools import lru_cache
 from cabby import create_client
-from stix_parse import sanitize_stix, parse_stix, BINDING_CHOICES
-from feed_helper import FeedHelper
+from connectors.taxii.stix_parse import sanitize_stix, parse_stix, BINDING_CHOICES
+from connectors.taxii.feed_helper import FeedHelper
 from cb.psc.integration.connector import Connector, ConnectorConfig
 
 log = logging.getLogger(__name__)
@@ -45,7 +45,7 @@ class TaxiiConnector(Connector):
             conf = self.config
             client = create_client(conf.site,
                                    use_https=conf.use_https,
-                                   discover_path=conf.discovery_path)
+                                   discovery_path=conf.discovery_path)
             client.set_auth(username=conf.username,
                             password=conf.password,
                             verify_ssl=conf.ssl_verify,
@@ -64,7 +64,7 @@ class TaxiiConnector(Connector):
             self.client = client
 
         except Exception as e:
-            logger.info(e.message)
+            log.info(e.message)
 
 
     def create_uri(self, config_path):
@@ -85,9 +85,9 @@ class TaxiiConnector(Connector):
             uri = self.create_uri(self.config.collection_management_path)
             collections = self.client.get_collections(uri=uri) # autodetect if uri=None
             for collection in collections:
-                logger.info(f"Collection Name: {collection.name}, Collection Type: {collection.type}")
+                log.info(f"Collection Name: {collection.name}, Collection Type: {collection.type}")
         except Exception as e:
-            logger.info(e.message)
+            log.info(e.message)
         return collections
 
 
@@ -95,14 +95,14 @@ class TaxiiConnector(Connector):
         content_blocks = []
         uri = self.create_uri(self.config.poll_path)
         try:
-            logger.info(f"Polling Collection: {collection.name}")
-            content_blocks = client.poll(uri=uri,
+            log.info(f"Polling Collection: {collection.name}")
+            content_blocks = self.client.poll(uri=uri,
                                          collection_name=collection.name,
                                          begin_date=feed_helper.start_date,
                                          end_date=feed_helper.end_date,
                                          content_bindings=BINDING_CHOICES)
         except Exception as e:
-            logger.info(e.message)
+            log.info(e.message)
         return content_blocks
 
 
@@ -128,15 +128,15 @@ class TaxiiConnector(Connector):
             else:
                 reports.extend(_reports)
             if len(reports) > reports_limit:
-                logger.info("We have reached the reports limit of {reports_limit}")
+                log.info("We have reached the reports limit of {reports_limit}")
                 break
             if collection.type == 'DATA_SET': # data is unordered, not a feed
                 break 
-            if num_fail > fail_limit:   # to prevent infinite loop
+            if num_fail > self.config.fail_limit:   # to prevent infinite loop
                 break            
 
-        if len(reports) > reports_limit
-            logger.info("Truncating reports to length {reports_limit}")
+        if len(reports) > reports_limit:
+            log.info("Truncating reports to length {reports_limit}")
             reports = reports[:reports_limit]
         return reports
             
@@ -167,14 +167,16 @@ class TaxiiConnector(Connector):
             scan_time = report['timestamp']
             score = report['score']
             link = report['link']
+            #TODO: we wasted report['description'] with this interface
             ioc_dict = report['iocs']
             result = self.result(binary,
                                  analysis_name=analysis_name,
-                                 scan_time=scan_time
+                                 scan_time=scan_time,
+                                 score=score)
             for ioc_key, ioc_val in ioc_dict.items():
                 result.ioc(values=ioc_val, field=ioc_key, link=link)
         except Exception as e:
-            logger.info(e.message)
+            log.info(e.message)
             result = self.result(binary, analysis_name="exception_format_report", error=True)
         return result
 
@@ -183,12 +185,12 @@ class TaxiiConnector(Connector):
         self.create_taxii_client()  # TODO: make this part of init, not analyze
                                     # assuming analyze is called repeatedly
         if not self.client:
-            logger.info('Unable to create taxii client.  Exiting...')
+            log.info('Unable to create taxii client.  Exiting...')
             return self.result(binary, analysis_name="exception_taxii_client", error=True)
         
         available_collections = self.query_collections()
         if not available_collections:
-            logger.info('Unable to find any collections.  Exiting...')
+            log.info('Unable to find any collections.  Exiting...')
             return self.result(binary, analysis_name="exception_query_collections", error=True)
 
         reports = self.import_collections(available_collections)
