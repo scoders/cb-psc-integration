@@ -1,9 +1,10 @@
 import logging
 import traceback
 from functools import lru_cache
+from datetime import datetime
 from cabby import create_client
 from connectors.taxii.stix_parse import sanitize_stix, parse_stix, BINDING_CHOICES
-from connectors.taxii.feed_helper import FeedHelper
+from connectors.taxii.feed_helper import FeedHelper,UTC
 from cb.psc.integration.connector import Connector, ConnectorConfig
 
 log = logging.getLogger(__name__)
@@ -98,10 +99,11 @@ class TaxiiConnector(Connector):
             log.info(f"Polling Collection: {collection.name}")
             content_blocks = self.client.poll(uri=uri,
                                          collection_name=collection.name,
-                                         begin_date=feed_helper.start_date,
-                                         end_date=feed_helper.end_date,
+                                         begin_date=self.config.start_date.replace(tzinfo=UTC()),
+                                         end_date=None,
+                                         #begin_date=feed_helper.start_date,
+                                         #end_date=feed_helper.end_date,
                                          content_bindings=BINDING_CHOICES)
-            log.debug(f"content_blocks: {content_blocks}")
         except Exception as e:
             log.warning(f"problem polling taxii server: {e.message}")
         return content_blocks
@@ -110,7 +112,13 @@ class TaxiiConnector(Connector):
     def parse_collection_content(self, content_blocks):
         reports = []
         for block in content_blocks:
-            reports.extend(parse_stix(block.content, self.config.default_score))
+            log.debug(f"got content_block: {block}")
+            report = parse_stix(block.content, self.config.default_score)
+            reports.extend(report)
+            log.debug(f"got report:{report}")
+            if report:
+                log.debug(f"breaking")
+                break   #TODO: remove
         return reports
 
 
@@ -128,6 +136,7 @@ class TaxiiConnector(Connector):
                 num_fail += 1
             else:
                 reports.extend(_reports)
+                break   #TODO: remove
             if len(reports) > reports_limit:
                 log.info("We have reached the reports limit of {reports_limit}")
                 break
@@ -162,18 +171,22 @@ class TaxiiConnector(Connector):
                 log.debug(f"collection:{collection}; not available")
                 continue
             if want_all or collection.name.lower() in desired_collections:
-               reports.extend(self.import_collection(collection))
+                report = self.import_collection(collection)
+                reports.extend(report)
+                if report:
+                    break  #TODO: remove
 
         return reports
        
     
-    def format_report(self, report, binary): 
+    def format_report(self, binary, report): 
         try:
-            analysis_name = f"{report['title']};{report['id']}" 
-            scan_time = report['timestamp']
+            # XXX: we wasted report['description'] and report['title'] ith this interface
+            # NOTE: analysis_name = f"{report['title']};{report['id']}"  becomes > 64 len
+            analysis_name = report['id']
+            scan_time = datetime.fromtimestamp(report['timestamp'])
             score = report['score']
             link = report['link']
-            #TODO: we wasted report['description'] with this interface
             ioc_dict = report['iocs']
             result = self.result(binary,
                                  analysis_name=analysis_name,
@@ -182,7 +195,7 @@ class TaxiiConnector(Connector):
             for ioc_key, ioc_val in ioc_dict.items():
                 result.ioc(values=ioc_val, field=ioc_key, link=link)
         except Exception as e:
-            log.info(e.message)
+            log.warning(e)
             result = self.result(binary, analysis_name="exception_format_report", error=True)
         return result
 

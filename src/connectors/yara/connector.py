@@ -55,10 +55,10 @@ class YaraConnector(Connector):
             matches = self.yara_rules.match(data=data, timeout=self.config.timeout)
         except yara.TimeoutError:
             log.warning(f"{self.name} timed out while analyzing {binary.sha256}")
-            return self.result(binary, analysis_name="timeout", error=True)
+            return [self.result(binary, analysis_name="timeout", error=True)]
         except yara.Error as e:
             log.error(f"{self.name} couldn't analyze {binary.sha256}: {e}")
-            return self.result(binary, analysis_name="exception", error=True)
+            return [self.result(binary, analysis_name="exception", error=True)]
 
         log.info(f"{self.name}: {len(matches)} matches")
 
