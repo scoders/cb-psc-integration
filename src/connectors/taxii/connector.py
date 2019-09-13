@@ -101,8 +101,9 @@ class TaxiiConnector(Connector):
                                          begin_date=feed_helper.start_date,
                                          end_date=feed_helper.end_date,
                                          content_bindings=BINDING_CHOICES)
+            log.debug(f"content_blocks: {content_blocks}")
         except Exception as e:
-            log.info(e.message)
+            log.warning(f"problem polling taxii server: {e.message}")
         return content_blocks
 
 
@@ -131,8 +132,10 @@ class TaxiiConnector(Connector):
                 log.info("We have reached the reports limit of {reports_limit}")
                 break
             if collection.type == 'DATA_SET': # data is unordered, not a feed
+                log.info(f"collection:{collection}; type data_set, not advancing feed")
                 break 
             if num_fail > self.config.fail_limit:   # to prevent infinite loop
+                log.error('Max fail limit reached; Exiting.')
                 break            
 
         if len(reports) > reports_limit:
@@ -147,13 +150,16 @@ class TaxiiConnector(Connector):
         
         want_all = False
         if '*' in desired_collections:
+            log.debug('desired collections: *')
             want_all = True
 
         reports = []
         for collection in available_collections:
             if collection.type != 'DATA_FEED' and collection.type != 'DATA_SET':
+                log.debug(f"collection:{collection}; type not feed or data")
                 continue
             if not collection.available:
+                log.debug(f"collection:{collection}; not available")
                 continue
             if want_all or collection.name.lower() in desired_collections:
                reports.extend(self.import_collection(collection))
@@ -185,17 +191,18 @@ class TaxiiConnector(Connector):
         self.create_taxii_client()  # TODO: make this part of init, not analyze
                                     # assuming analyze is called repeatedly
         if not self.client:
-            log.info('Unable to create taxii client.  Exiting...')
-            return self.result(binary, analysis_name="exception_taxii_client", error=True)
+            log.error('Unable to create taxii client.  Exiting...')
+            return [self.result(binary, analysis_name="exception_taxii_client", error=True)]
         
         available_collections = self.query_collections()
         if not available_collections:
-            log.info('Unable to find any collections.  Exiting...')
-            return self.result(binary, analysis_name="exception_query_collections", error=True)
+            log.warning('Unable to find any collections.  Exiting...')
+            return [self.result(binary, analysis_name="exception_query_collections", error=True)]
 
         reports = self.import_collections(available_collections)
         if not reports:
-            return self.result(binary, analysis_name="exception_import_collections", error=True)
+            log.warning('Unable to import collections.  Exiting...')
+            return [self.result(binary, analysis_name="exception_import_collections", error=True)]
             
         results = []
         for report in reports:
