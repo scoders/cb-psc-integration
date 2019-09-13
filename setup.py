@@ -37,5 +37,8 @@ setup(
         "SQLAlchemy",
         "validators >= 0.14.0",
         "yara-python",
+        "cabby",
+        "lxml",
+        "stix"
     ],
 )

@@ -1,10 +1,23 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, tzinfo
+
+class UTC(tzinfo):
+    """UTC"""
+
+    def utcoffset(self, dt):
+        return timedelta(0)
+
+    def tzname(self, dt):
+        return "UTC"
+
+    def dst(self, dt):
+        return timedelta(0)
+
 
 class FeedHelper():
-    def __init__(self, start_date_str, minutes_to_advance):
+    def __init__(self, start_date, minutes_to_advance):
+        TZ_UTC = UTC()
         self.minutes_to_advance = minutes_to_advance
-        self.start_date = datetime.strptime(
-             start_date_str,"%Y-%m-%d %H:%M:%S").replace(tzinfo=TZ_UTC)
+        self.start_date = start_date.replace(tzinfo=TZ_UTC)
         self.end_date = self.start_date + timedelta(minutes=self.minutes_to_advance)
         self.now = datetime.utcnow().replace(tzinfo=TZ_UTC)
         if self.end_date > self.now:

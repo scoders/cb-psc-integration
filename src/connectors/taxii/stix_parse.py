@@ -288,7 +288,7 @@ def parse_stix_observables(stix_package, default_score):
     return reports
 
 
-def sanitize_stix(stix_xml);
+def sanitize_stix(stix_xml):
     xml_root = etree.fromstring(stix_xml)
     content = xml_root.find('.//{http://taxii.mitre.org/messages/taxii_xml_binding-1.1}Content')
     if content is not None and len(content) == 0 and len(list(content)) == 0:
