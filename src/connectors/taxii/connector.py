@@ -20,7 +20,7 @@ class TaxiiConfig(ConnectorConfig):
     ssl_verify: bool = False
     cert_file: str = None
     key_file: str = None
-    default_score: int = 50
+    default_score: int = 5  # [1,10]
     username: str = None
     password: str = None
     collections: str = '*'
@@ -32,7 +32,6 @@ class TaxiiConfig(ConnectorConfig):
     reports_limit: int = 10000
     fail_limit: int = 10   # num attempts per collection for 
                            # polling server and parsing stix content
-
 
 class TaxiiConnector(Connector):
     Config = TaxiiConfig
@@ -88,7 +87,7 @@ class TaxiiConnector(Connector):
             for collection in collections:
                 log.info(f"Collection Name: {collection.name}, Collection Type: {collection.type}")
         except Exception as e:
-            log.info(e.message)
+            log.info(e)
         return collections
 
 
@@ -99,10 +98,10 @@ class TaxiiConnector(Connector):
             log.info(f"Polling Collection: {collection.name}")
             content_blocks = self.client.poll(uri=uri,
                                          collection_name=collection.name,
-                                         begin_date=self.config.start_date.replace(tzinfo=UTC()),
-                                         end_date=None,
-                                         #begin_date=feed_helper.start_date,
-                                         #end_date=feed_helper.end_date,
+                                         #begin_date=self.config.start_date.replace(tzinfo=UTC()),
+                                         #end_date=None,
+                                         begin_date=feed_helper.start_date,
+                                         end_date=feed_helper.end_date,
                                          content_bindings=BINDING_CHOICES)
         except Exception as e:
             log.warning(f"problem polling taxii server: {e.message}")

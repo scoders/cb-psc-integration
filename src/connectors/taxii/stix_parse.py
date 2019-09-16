@@ -244,11 +244,11 @@ def get_stix_indicator_score(indicator, default_score):
         score = int(indicator.confidence.to_dict().get("value", default_score))
         return score
     if confidence_val_str.lower() == "high":
-        return 75
+        return 7    #75
     if confidence_val_str.lower() == "medium":
-        return 50
+        return 5    #50
     if confidence_val_str.lower() == "low":
-        return 25
+        return 2    #25
     
     return default_score
 
