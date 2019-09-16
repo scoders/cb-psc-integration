@@ -58,7 +58,7 @@ class Config:
     The protocol and path to use for the result DB.
     """
 
-    binary_timeout: Optional[int] = 60  # TODO(ww): Maybe default to None?
+    binary_timeout: Optional[int] = 600  # TODO(ww): Maybe default to None?
     """
     The maximum time allotted to each binary analysis task, or 0
     if no timeout.

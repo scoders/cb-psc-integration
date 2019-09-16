@@ -159,7 +159,7 @@ def analyze_binary(hash):
 
     for conn in connector.connectors():
         log.debug(f"running {conn.name} analysis")
-        binary_analysis.enqueue(conn._analyze, binary)
+        binary_analysis.enqueue(conn._analyze, binary, job_timeout=config.binary_timeout)
 
 
 def flush_binary(binary):
