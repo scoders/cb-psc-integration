@@ -40,7 +40,8 @@ def validate_domain_name(domain_name):
     :return: True or False
     """
     if len(domain_name) > 255:
-        logger.warn("Excessively long domain name {} in IOC list".format(domain_name))
+        logger.warn(
+            "Excessively long domain name {} in IOC list".format(domain_name))
         return False
 
     if not all([c in domain_allowed_chars for c in domain_name]):
@@ -54,7 +55,8 @@ def validate_domain_name(domain_name):
 
     for part in parts:
         if len(part) < 1 or len(part) > 63:
-            logger.warn("Invalid label length {} in domain name {} for report %s".format(part, domain_name))
+            logger.warn("Invalid label length {} in domain name {} for report %s".format(
+                part, domain_name))
             return False
 
     return True
@@ -96,6 +98,7 @@ def validate_ip_address(ip_address):
     except socket.error:
         return False
 
+
 def cybox_parse_observable(observable, indicator, timestamp, score):
     """
     parses a cybox observable and returns a list of iocs.
@@ -126,7 +129,6 @@ def cybox_parse_observable(observable, indicator, timestamp, score):
     if not description and indicator and indicator.description:
         description = str(indicator.description.value)
 
-
     #
     # use the first reference as a link
     # NOTE: This was added for RecordedFuture
@@ -137,7 +139,6 @@ def cybox_parse_observable(observable, indicator, timestamp, score):
             link = reference
             break
 
-
     #
     # Sometimes the title is None, so generate a random UUID
     #
@@ -147,10 +148,7 @@ def cybox_parse_observable(observable, indicator, timestamp, score):
     else:
         title = str(uuid.uuid4())
 
-
     if type(props) == DomainName:
-        logger.debug(f"parsing DomainName: {props.value}")
-        
         if props.value and props.value.value:
             iocs = {'dns': []}
             #
@@ -163,9 +161,7 @@ def cybox_parse_observable(observable, indicator, timestamp, score):
                         iocs['dns'].append(domain_name.strip())
             else:
                 domain_name = props.value.value.strip()
-                logger.debug(f"validating domain_name: {domain_name}")
                 if validate_domain_name(domain_name):
-                    logger.debug(f"validation passed")
                     iocs['dns'].append(domain_name)
 
             if len(iocs['dns']) > 0:
@@ -178,7 +174,6 @@ def cybox_parse_observable(observable, indicator, timestamp, score):
                                 'score': score})
 
     elif type(props) == Address:
-        logger.debug(f"parsing Address: {props.address_value}, {props.category}, {props.address_value.value}")
         if props.category == 'ipv4-addr' and props.address_value:
             iocs = {'ipv4': []}
 
@@ -191,9 +186,7 @@ def cybox_parse_observable(observable, indicator, timestamp, score):
                         iocs['ipv4'].append(ip.strip())
             else:
                 ipv4 = props.address_value.value.strip()
-                logger.debug(f"validating IP: {ipv4}")
                 if validate_ip_address(ipv4):
-                    logger.debug(f"validation passed")
                     iocs['ipv4'].append(ipv4)
 
             if len(iocs['ipv4']) > 0:
@@ -234,7 +227,6 @@ def cybox_parse_observable(observable, indicator, timestamp, score):
     return reports
 
 
-
 def get_stix_indicator_score(indicator, default_score):
     if not indicator.confidence:
         return default_score
@@ -244,12 +236,12 @@ def get_stix_indicator_score(indicator, default_score):
         score = int(indicator.confidence.to_dict().get("value", default_score))
         return score
     if confidence_val_str.lower() == "high":
-        return 7    #75
+        return 7  # 75
     if confidence_val_str.lower() == "medium":
-        return 5    #50
+        return 5  # 50
     if confidence_val_str.lower() == "low":
-        return 2    #25
-    
+        return 2  # 25
+
     return default_score
 
 
@@ -267,7 +259,7 @@ def get_stix_package_timestamp(stix_package):
         timestamp = stix_package.timestamp
         timestamp = int(time.mktime(timestamp.timetuple()))
     except Exception as e:
-        logger.info(e.message)
+        logger.warning(f"Problem parsing stix timestamp: {e}")
         timestamp = 0
     return timestamp
 
@@ -278,19 +270,12 @@ def parse_stix_indicators(stix_package, default_score):
         return reports
 
     for indicator in stix_package.indicators:
-        logger.debug(f"parsing indicator: {indicator}")
         if not indicator or not indicator.observable:
-            logger.debug(f"no indicator observable; skipping")
             continue
         score = get_stix_indicator_score(indicator, default_score)
         timestamp = get_stix_indicator_timestamp(indicator)
-        logger.debug(f"indicator ts and score: {indicator}, {timestamp}, {score}")
-        report = cybox_parse_observable(indicator.observable, indicator, timestamp, score)
-        reports.extend(report)
-        logger.debug(f"got report: {report}")
-        if report:
-            logger.debug(f"breaking")
-            break   #TODO: remove
+        reports.extend(cybox_parse_observable(
+            indicator.observable, indicator, timestamp, score))
 
     return reports
 
@@ -299,29 +284,27 @@ def parse_stix_observables(stix_package, default_score):
     reports = []
     if not stix_package.observables:
         return reports
-    
+
     timestamp = get_stix_package_timestamp(stix_package)
     for observable in stix_package.observables:
         if not observable:
             continue
-        report = cybox_parse_observable(observable, None, timestamp, default_score)
-        reports.extend(report)
-        logger.debug(f"got report: {report}")
-        if report:
-            logger.debug(f"breaking")
-            break   #TODO: remove
+        reports.extend(cybox_parse_observable(
+            observable, None, timestamp, default_score))
 
     return reports
 
 
 def sanitize_stix(stix_xml):
     xml_root = etree.fromstring(stix_xml)
-    content = xml_root.find('.//{http://taxii.mitre.org/messages/taxii_xml_binding-1.1}Content')
+    content = xml_root.find(
+        './/{http://taxii.mitre.org/messages/taxii_xml_binding-1.1}Content')
     if content is not None and len(content) == 0 and len(list(content)) == 0:
         # Content has no children.
-        # So lets make sure we parse the xml text for content and 
+        # So lets make sure we parse the xml text for content and
         # re-add it as valid XML so we can parse
-        _content = xml_root.find("{http://taxii.mitre.org/messages/taxii_xml_binding-1.1}Content_Block/{http://taxii.mitre.org/messages/taxii_xml_binding-1.1}Content")
+        _content = xml_root.find(
+            "{http://taxii.mitre.org/messages/taxii_xml_binding-1.1}Content_Block/{http://taxii.mitre.org/messages/taxii_xml_binding-1.1}Content")
         new_stix_package = etree.fromstring(_content.text)
         content.append(new_stix_package)
     return etree.tostring(xml_root)
@@ -338,6 +321,5 @@ def parse_stix(stix_xml, default_score):
         reports.extend(parse_stix_indicators(stix_package, default_score))
         reports.extend(parse_stix_observables(stix_package, default_score))
     except Exception as e:
-        logger.info(e)
+        logger.warning(f"Problem parsing stix: {e}")
     return reports
-
