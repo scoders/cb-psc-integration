@@ -9,8 +9,8 @@ key_file:
 default_score: 5
 username: guest
 password: guest
-collections: '*'
-start_date: 2019-05-01 00:00:00
+collections: 'guest.blutmagie_de_torExits'
+start_date: 2019-09-15 00:00:00
 minutes_to_advance: 1440
 ca_cert: 
 http_proxy_url:
