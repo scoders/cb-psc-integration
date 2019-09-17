@@ -248,10 +248,9 @@ class AnalysisResult(Base):
         """
         if self.score <= 0 or self.score > 10:
             log.warning(f"normalizing OOB score: {self.score}")
-            self.update(score=max(1, int(self.score/10)))
-            #self.update(score=max(1, min(self.score, 10)))
-            # NOTE: min 1 and ot 0 
-                # else err 400 from cbapi: Report severity must be between 1 and 10
+            self.update(score=max(1, min(self.score, 10)))
+            # NOTE: min 1 and not 0 
+            # else err 400 from cbapi: Report severity must be between 1 & 10
         return self
 
     def __str__(self):
