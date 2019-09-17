@@ -1,16 +1,16 @@
-site: test.taxiistand.com
-discovery_path: /read-only/services/discovery
-collection_management_path: /read-only/services/collection-management
-poll_path: /read-only/services/poll
-use_https: True
+site: hailataxii.com
+discovery_path: /taxii-discovery-service
+collection_management_path:
+poll_path:
+use_https: False
 ssl_verify: False
 cert_file: 
 key_file: 
-default_score: 50
-username: 
-password: 
+default_score: 5
+username: guest
+password: guest
 collections: '*'
-start_date: 2017-01-01 00:00:00
+start_date: 2019-05-01 00:00:00
 minutes_to_advance: 1440
 ca_cert: 
 http_proxy_url:
