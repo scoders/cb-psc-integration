@@ -1,4 +1,6 @@
 import logging
+from dataclasses import dataclass, field
+from frozendict import frozendict
 from datetime import datetime
 from cabby import create_client
 from connectors.taxii.stix_parse import parse_stix, BINDING_CHOICES
@@ -9,7 +11,9 @@ log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
 
-class TaxiiConfig(ConnectorConfig):
+
+@dataclass(eq=True, frozen=True)
+class TaxiiSiteConfig:
     site: str = ''
     discovery_path: str = ''
     collection_management_path: str = ''
@@ -31,14 +35,14 @@ class TaxiiConfig(ConnectorConfig):
     fail_limit: int = 10   # num attempts per collection for polling & parsing
 
 
-class TaxiiConnector(Connector):
-    Config = TaxiiConfig
-    name = "taxii"
+class TaxiiSiteConnector():
+    def __init__(self, site_conf):
+        self.config = TaxiiSiteConfig(**site_conf)
+        self.client = None
 
     def create_taxii_client(self):
-        self.client = None
+        conf = self.config
         try:
-            conf = self.config
             client = create_client(conf.site,
                                    use_https=conf.use_https,
                                    discovery_path=conf.discovery_path)
@@ -64,7 +68,7 @@ class TaxiiConnector(Connector):
 
     def create_uri(self, config_path):
         uri = None
-        if config_path and self.config.site:
+        if self.config.site and config_path:
             if self.config.use_https:
                 uri = 'https://'
             else:
@@ -178,7 +182,7 @@ class TaxiiConnector(Connector):
                 binary, analysis_name="exception_format_report", error=True)
         return result
 
-    def analyze(self, binary, data):   # TODO:ignoring binary for now
+    def analyze(self, binary, data):   # NOTE:ignoring binary for now
         self.create_taxii_client()
 
         if not self.client:
@@ -202,3 +206,27 @@ class TaxiiConnector(Connector):
                                 error=True)]
 
         return [self.format_report(binary, report) for report in reports]
+    
+
+class TaxiiConfig(ConnectorConfig):
+    sites: dict = field(default_factory=frozendict)
+
+
+class TaxiiConnector(Connector):
+    Config = TaxiiConfig
+    name = "taxii"
+
+    def configure_sites(self):
+        self.sites = {}
+        for site_name, site_conf in self.config.sites.items():
+            self.sites[site_name] = TaxiiSiteConnector(site_conf)
+
+    def analyze(self, binary, data):   # TODO:ignoring binary for now
+        self.configure_sites()
+        reports = []
+        for site_name, site_conn in self.sites.items():
+            log.info(f"Talking to {site_name} server")
+            reports.extend(site_conn.analyze(binary, data))
+        return reports
+
+ 
