@@ -11,7 +11,6 @@ log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
 
-
 @dataclass(eq=True, frozen=True)
 class TaxiiSiteConfig:
     site: str = ''
@@ -94,11 +93,11 @@ class TaxiiSiteConnector():
         try:
             log.info(f"Polling Collection: {collection.name}")
             content_blocks = self.client.poll(
-                                          uri=uri,
-                                          collection_name=collection.name,
-                                          begin_date=feed_helper.start_date,
-                                          end_date=feed_helper.end_date,
-                                          content_bindings=BINDING_CHOICES)
+                uri=uri,
+                collection_name=collection.name,
+                begin_date=feed_helper.start_date,
+                end_date=feed_helper.end_date,
+                content_bindings=BINDING_CHOICES)
         except Exception as e:
             log.warning(f"problem polling taxii server: {e}")
         return content_blocks
@@ -160,6 +159,43 @@ class TaxiiSiteConnector():
 
         return reports
 
+    def analyze(self, binary, data):   # NOTE:ignoring binary for now
+        reports = []
+
+        self.create_taxii_client()
+        if not self.client:
+            log.error('Unable to create taxii client.  Exiting...')
+            return reports
+
+        available_collections = self.query_collections()
+        if not available_collections:
+            log.warning('Unable to find any collections.  Exiting...')
+            return reports
+
+        reports = self.import_collections(available_collections)
+        if not reports:
+            log.warning('Unable to import collections.  Exiting...')
+            return reports
+
+        return reports
+
+
+class TaxiiConfig(ConnectorConfig):
+    sites: dict = field(default_factory=frozendict)
+
+
+class TaxiiConnector(Connector):
+    Config = TaxiiConfig
+    name = "taxii"
+
+    def configure_sites(self):
+        self.sites = {}
+        try:
+            for site_name, site_conf in self.config.sites.items():
+                self.sites[site_name] = TaxiiSiteConnector(site_conf)
+        except Exception as e:
+            log.error(f"Error in parsing config file: {e}")
+
     def format_report(self, binary, report):
         try:
             # NOTE:
@@ -183,50 +219,18 @@ class TaxiiSiteConnector():
         return result
 
     def analyze(self, binary, data):   # NOTE:ignoring binary for now
-        self.create_taxii_client()
-
-        if not self.client:
-            log.error('Unable to create taxii client.  Exiting...')
-            return [self.result(binary,
-                                analysis_name="exception_taxii_client",
-                                error=True)]
-
-        available_collections = self.query_collections()
-        if not available_collections:
-            log.warning('Unable to find any collections.  Exiting...')
-            return [self.result(binary,
-                                analysis_name="exception_query_collections",
-                                error=True)]
-
-        reports = self.import_collections(available_collections)
-        if not reports:
-            log.warning('Unable to import collections.  Exiting...')
-            return [self.result(binary,
-                                analysis_name="exception_import_collections",
-                                error=True)]
-
-        return [self.format_report(binary, report) for report in reports]
-    
-
-class TaxiiConfig(ConnectorConfig):
-    sites: dict = field(default_factory=frozendict)
-
-
-class TaxiiConnector(Connector):
-    Config = TaxiiConfig
-    name = "taxii"
-
-    def configure_sites(self):
-        self.sites = {}
-        for site_name, site_conf in self.config.sites.items():
-            self.sites[site_name] = TaxiiSiteConnector(site_conf)
-
-    def analyze(self, binary, data):   # TODO:ignoring binary for now
         self.configure_sites()
-        reports = []
+        results = []
         for site_name, site_conn in self.sites.items():
             log.info(f"Talking to {site_name} server")
-            reports.extend(site_conn.analyze(binary, data))
-        return reports
-
- 
+            reports = site_conn.analyze(binary, data)
+            if not reports:
+                result = [self.result(
+                               binary,
+                               analysis_name=f"exception_analyze_{site_name}",
+                               error=True)]
+            else:
+                result = [self.format_report(binary, report)
+                          for report in reports]
+            results.extend(result)
+        return results
