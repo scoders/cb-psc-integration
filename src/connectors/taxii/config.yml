@@ -1,19 +1,41 @@
-site: hailataxii.com
-discovery_path: /taxii-discovery-service
-collection_management_path:
-poll_path:
-use_https: False
-ssl_verify: False
-cert_file: 
-key_file: 
-default_score: 5
-username: guest
-password: guest
-collections: 'guest.blutmagie_de_torExits'
-start_date: 2019-09-15 00:00:00
-minutes_to_advance: 1440
-ca_cert: 
-http_proxy_url:
-https_proxy_url:
-reports_limit: 10000
-fail_limit: 100
+sites:
+    hailataxii:
+        site: hailataxii.com
+        discovery_path: /taxii-discovery-service
+        collection_management_path:
+        poll_path:
+        use_https: False
+        ssl_verify: False
+        cert_file: 
+        key_file: 
+        default_score: 5
+        username: guest
+        password: guest
+        collections: 'guest.blutmagie_de_torExits'
+        start_date: 2019-09-15 00:00:00
+        minutes_to_advance: 1440
+        ca_cert: 
+        http_proxy_url:
+        https_proxy_url:
+        reports_limit: 10000
+        fail_limit: 100
+    eclecticiq:
+        site: test.taxiistand.com
+        discovery_path: /read-only/services/discovery
+        collection_management_path: /read-only/services/collection-management
+        poll_path: /read-only/services/poll
+        use_https: True
+        ssl_verify: False
+        cert_file: 
+        key_file: 
+        default_score: 5
+        username: 
+        password: 
+        collections: '*'
+        start_date: 2019-05-01 00:00:00
+        minutes_to_advance: 1440
+        ca_cert: 
+        http_proxy_url:
+        https_proxy_url:
+        reports_limit: 10000
+        fail_limit: 100
