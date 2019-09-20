@@ -3,6 +3,7 @@ import logging
 import os
 from dataclasses import dataclass
 from functools import lru_cache
+from datetime import datetime
 
 import yaml
 from rq import get_current_job
@@ -138,7 +139,7 @@ class Connector(object):
         ).normalize()
         return result
 
-    def _analyze(self, binary):
+    def _analyze_org(self, binary):
         log.info(f"{self.name}: analyzing binary {binary.sha256}")
         data = workers.redis.get(binary.data_key)
         results = self.analyze(binary, data)
@@ -159,6 +160,32 @@ class Connector(object):
             log.warning("no sink mapped to this connector; not dispatching result")
 
         return results
+
+    def _analyze(self, binary):
+        log.info(f"{self.name}: analyzing binary {binary.sha256}")
+        
+        result_ids = []
+        data = workers.redis.get(binary.data_key)
+        results = self.analyze(binary, data)
+        for result in results:
+            workers.result_dispatch.enqueue(workers.track_result, result.id)
+
+        if self.name in config.sinks:
+            workers.result_dispatch.enqueue(workers.dispatch_result, datetime.utcnow())
+        else:
+            log.warning("no sink mapped to this connector; not dispatching result")
+
+        refcount = workers.redis.decr(binary.count_key)
+
+        if refcount < 0:
+            log.info(f"weird: refcount < 0 for cached binary: {binary.sha256}")
+        elif refcount == 0:
+            workers.binary_cleanup.enqueue(workers.flush_binary, binary)
+        else:
+            log.info(f"binary {binary.sha256} has {refcount} references remaining")
+
+        return results
+
 
     def analyze(self, binary, data):
         """

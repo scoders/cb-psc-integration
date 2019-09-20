@@ -2,6 +2,7 @@ import importlib.util
 import logging
 import os.path
 import sys
+from datetime import datetime
 
 import cbapi.psc.threathunter as threathunter
 import redis as r
@@ -31,10 +32,13 @@ binary_cleanup = Queue("binary_cleanup", connection=redis)
 result_dispatch = Queue("result_dispatch", connection=redis)
 
 scheduled_retrieval = Scheduler(queue=binary_retrieval, connection=redis)
+scheduled_dispatch = Scheduler(queue=result_dispatch, connection=redis)
+                    
 
 log = logging.getLogger(__name__)
 log.setLevel(config.loglevel)
 
+result_ids = []    #TODO: move elsewhere, than a global var
 
 def download_binary(hash, url, *, retry):
     """
@@ -207,7 +211,34 @@ def dispatch_to_watchlist(watchlist_id, results):
     #     return
 
 
-def dispatch_result(result_ids):
+def track_result(result_id):
+    #TODO maybe need lock; race condition with dispatch_result
+    global result_ids
+    result_ids.append(result_id)
+    
+def dispatch_result(ts):
+    """
+    Dispatches the given results (by ID) to the appropriate sink.
+    """
+    global result_ids
+    log.debug(f"dispatch_result: {len(result_ids)} results; ts: {ts}")
+    results = session.query(AnalysisResult).filter(AnalysisResult.id.in_(result_ids)).all()
+
+    for result in results:
+        if result.dispatched:
+            continue
+ 
+        sink = config.sinks[result.connector_name]
+        log.debug(f"dispatch_result: {sink} {result}")
+
+        if sink.kind == "feed":
+            dispatch_to_feed(sink.id, [result])
+        elif sink.kind == "watchlist":
+            dispatch_to_watchlist(sink.id, [result])
+
+        result.update(dispatched=True)
+
+def dispatch_result_org(result_ids):
     """
     Dispatches the given results (by ID) to the appropriate sink.
     """
@@ -262,6 +293,12 @@ def load_connectors():
 
     log.info(f"loaded connectors: {', '.join(c.name for c in connector.connectors())}")
 
+
+scheduled_dispatch.schedule(
+                    scheduled_time=datetime.utcnow(),
+                    func=dispatch_result,
+                    args=[datetime.now()],
+                    interval=10)
 
 if __name__ == "__main__":
     load_connectors()
