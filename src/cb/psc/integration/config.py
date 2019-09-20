@@ -80,6 +80,11 @@ class Config:
     A mapping of connector names to result sink configurations.
     """
 
+    feed_size: int = 10
+    """
+    Min num of reports to send in a feed dispatch
+    """
+
     @property
     @functools.lru_cache()
     def environment(self):

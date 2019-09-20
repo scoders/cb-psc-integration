@@ -3,7 +3,6 @@ import logging
 import os
 from dataclasses import dataclass
 from functools import lru_cache
-from datetime import datetime
 
 import yaml
 from rq import get_current_job
@@ -52,6 +51,7 @@ class Connector(object):
 
     _instance = None
     available = True
+    result_ids = []
 
     def __init__(self):
         if self.__class__._instance:
@@ -139,6 +139,44 @@ class Connector(object):
         ).normalize()
         return result
 
+
+    def batch_and_enqueue_dispatch(self, results):
+        log.info(f"{self.name}: enqueuing results dispatch")
+
+        if self.name not in config.sinks:
+            log.warning("no sink mapped to this connector; not dispatching result")
+            return
+
+        num_results = 0
+        self.result_ids = []
+        for result in results:  # results is a generator
+            self.result_ids.append(result.id)
+            num_results += 1
+            if num_results % config.feed_size == 0:
+                workers.result_dispatch.enqueue(workers.dispatch_result, self.result_ids)
+                self.result_ids = []
+
+        if self.result_ids:  # leftover results
+            workers.result_dispatch.enqueue(workers.dispatch_result, self.result_ids)
+            self.result_ids = []
+
+
+    #TODO: might be better to chunk rather than periodic emission (race conditions)
+    #Then if timeout occurs and chunking not compelte, then handle emission of remaining results with no race condition issues
+    def _analyze(self, binary):
+        log.info(f"{self.name}: analyzing binary {binary.sha256}")
+        data = workers.redis.get(binary.data_key)
+        results = self.analyze(binary, data)
+        self.batch_and_enqueue_dispatch(results)
+        refcount = workers.redis.decr(binary.count_key)
+        if refcount < 0:
+            log.info(f"weird: refcount < 0 for cached binary: {binary.sha256}")
+        elif refcount == 0:
+            workers.binary_cleanup.enqueue(workers.flush_binary, binary)
+        else:
+            log.info(f"binary {binary.sha256} has {refcount} references remaining")
+        return results
+
     def _analyze_org(self, binary):
         log.info(f"{self.name}: analyzing binary {binary.sha256}")
         data = workers.redis.get(binary.data_key)
@@ -160,32 +198,6 @@ class Connector(object):
             log.warning("no sink mapped to this connector; not dispatching result")
 
         return results
-
-    def _analyze(self, binary):
-        log.info(f"{self.name}: analyzing binary {binary.sha256}")
-        
-        result_ids = []
-        data = workers.redis.get(binary.data_key)
-        results = self.analyze(binary, data)
-        for result in results:
-            workers.result_dispatch.enqueue(workers.track_result, result.id)
-
-        if self.name in config.sinks:
-            workers.result_dispatch.enqueue(workers.dispatch_result, datetime.utcnow())
-        else:
-            log.warning("no sink mapped to this connector; not dispatching result")
-
-        refcount = workers.redis.decr(binary.count_key)
-
-        if refcount < 0:
-            log.info(f"weird: refcount < 0 for cached binary: {binary.sha256}")
-        elif refcount == 0:
-            workers.binary_cleanup.enqueue(workers.flush_binary, binary)
-        else:
-            log.info(f"binary {binary.sha256} has {refcount} references remaining")
-
-        return results
-
 
     def analyze(self, binary, data):
         """

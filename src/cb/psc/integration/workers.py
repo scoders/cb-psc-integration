@@ -2,7 +2,6 @@ import importlib.util
 import logging
 import os.path
 import sys
-from datetime import datetime
 
 import cbapi.psc.threathunter as threathunter
 import redis as r
@@ -12,6 +11,7 @@ from rq import Connection, Queue, Worker
 from rq.job import Job
 from rq.registry import StartedJobRegistry
 from rq_scheduler import Scheduler
+from rq.timeouts import JobTimeoutException 
 
 import cb.psc.integration.connector as connector
 from cb.psc.integration.config import config
@@ -32,7 +32,7 @@ binary_cleanup = Queue("binary_cleanup", connection=redis)
 result_dispatch = Queue("result_dispatch", connection=redis)
 
 scheduled_retrieval = Scheduler(queue=binary_retrieval, connection=redis)
-scheduled_dispatch = Scheduler(queue=result_dispatch, connection=redis)
+#scheduled_dispatch = Scheduler(queue=result_dispatch, connection=redis)
                     
 
 log = logging.getLogger(__name__)
@@ -211,31 +211,27 @@ def dispatch_to_watchlist(watchlist_id, results):
     #     return
 
 
-def track_result(result_id):
-    #TODO maybe need lock; race condition with dispatch_result
-    global result_ids
-    result_ids.append(result_id)
-    
-def dispatch_result(ts):
+def dispatch_result(result_ids):
     """
     Dispatches the given results (by ID) to the appropriate sink.
     """
-    global result_ids
-    log.debug(f"dispatch_result: {len(result_ids)} results; ts: {ts}")
+    log.debug(f"dispatch_result: {len(result_ids)} results")
     results = session.query(AnalysisResult).filter(AnalysisResult.id.in_(result_ids)).all()
 
+    results = [result for result in results if not result.dispatched]
+    if not results:
+        return
+
+    # all results come from the same analysis, hence same sink (one per conn)
+    sink = config.sinks[results[0].connector_name]
+    log.debug(f"dispatch_result: sending {len(results)} results to {sink}")
+
+    if sink.kind == "feed":
+        dispatch_to_feed(sink.id, results)
+    elif sink.kind == "watchlist":
+        dispatch_to_watchlist(sink.id, results)
+
     for result in results:
-        if result.dispatched:
-            continue
- 
-        sink = config.sinks[result.connector_name]
-        log.debug(f"dispatch_result: {sink} {result}")
-
-        if sink.kind == "feed":
-            dispatch_to_feed(sink.id, [result])
-        elif sink.kind == "watchlist":
-            dispatch_to_watchlist(sink.id, [result])
-
         result.update(dispatched=True)
 
 def dispatch_result_org(result_ids):
@@ -294,14 +290,23 @@ def load_connectors():
     log.info(f"loaded connectors: {', '.join(c.name for c in connector.connectors())}")
 
 
-scheduled_dispatch.schedule(
-                    scheduled_time=datetime.utcnow(),
-                    func=dispatch_result,
-                    args=[datetime.now()],
-                    interval=10)
+#scheduled_dispatch.schedule(
+#                    scheduled_time=datetime.utcnow(),
+#                    func=dispatch_result,
+#                    args=[datetime.now()],
+#                    interval=10)
+
+#TODO: match by func_name or id
+def timeout_handler(job, exc_type, exc_value, traceback):
+    if not isinstance(exc_value, JobTimeoutException):
+        return False
+    log.info(f"Caught timeout exception for job: {job}, {dir(job)}, {job.func_name}")
+    return False
+    
 
 if __name__ == "__main__":
     load_connectors()
     with Connection(redis):
         worker = Worker(list(map(Queue, listen)))
+        worker.push_exc_handler(timeout_handler)
         worker.work()
