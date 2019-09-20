@@ -103,39 +103,40 @@ class TaxiiSiteConnector():
         return content_blocks
 
     def parse_collection_content(self, content_blocks):
-        reports = []
         for block in content_blocks:
-            reports.extend(
-                parse_stix(block.content, self.config.default_score))
-        return reports
+            yield from parse_stix(block.content, self.config.default_score)
 
     def import_collection(self, collection):
         num_times_empty_content_blocks = 0
-        reports = []
+        advance = True
         reports_limit = self.config.reports_limit
         feed_helper = FeedHelper(self.config.start_date,
                                  self.config.minutes_to_advance)
 
         while feed_helper.advance():
+            num_reports = 0
             content_blocks = self.poll_server(collection, feed_helper)
-            reports.extend(self.parse_collection_content(content_blocks))
-            if not reports:
-                num_times_empty_content_blocks += 1
-            if len(reports) > reports_limit:
-                log.info(
-                    "We have reached the reports limit of {reports_limit}")
+            reports = self.parse_collection_content(content_blocks)
+            for report in reports:
+                yield report
+                num_reports += 1
+                if num_reports > reports_limit:
+                    log.info("Reports limit of {reports_limit} reached")
+                    advance = False
+                    break
+
+            if not advance:
                 break
             if collection.type == 'DATA_SET':  # data is unordered, not a feed
                 log.info(f"collection:{collection}; type data_set; breaking")
                 break
+            if num_reports == 0:
+                num_times_empty_content_blocks += 1
             if num_times_empty_content_blocks > self.config.fail_limit:
                 log.error('Max fail limit reached; Exiting.')
                 break
+            reports_limit -= num_reports
 
-        if len(reports) > reports_limit:
-            log.info("Truncating reports to length {reports_limit}")
-            reports = reports[:reports_limit]
-        return reports
 
     def import_collections(self, available_collections):
         desired_collections = self.config.collections
@@ -146,7 +147,6 @@ class TaxiiSiteConnector():
         if '*' in desired_collections:
             want_all = True
 
-        reports = []
         for collection in available_collections:
             if collection.type != 'DATA_FEED' and collection.type != 'DATA_SET':
                 log.debug(f"collection:{collection}; type not feed or data")
@@ -155,9 +155,8 @@ class TaxiiSiteConnector():
                 log.debug(f"collection:{collection} not available")
                 continue
             if want_all or collection.name.lower() in desired_collections:
-                reports.extend(self.import_collection(collection))
+                yield from self.import_collection(collection)
 
-        return reports
 
     def analyze(self, binary, data):   # NOTE:ignoring binary for now
         reports = []
@@ -220,17 +219,14 @@ class TaxiiConnector(Connector):
 
     def analyze(self, binary, data):   # NOTE:ignoring binary for now
         self.configure_sites()
-        results = []
         for site_name, site_conn in self.sites.items():
             log.info(f"Talking to {site_name} server")
             reports = site_conn.analyze(binary, data)
             if not reports:
-                result = [self.result(
-                               binary,
-                               analysis_name=f"exception_analyze_{site_name}",
-                               error=True)]
+                yield [self.result(
+                                binary,
+                                analysis_name=f"exception_analyze_{site_name}",
+                                error=True)]
             else:
-                result = [self.format_report(binary, report)
-                          for report in reports]
-            results.extend(result)
-        return results
+                for report in reports:
+                    yield self.format_report(binary, report)

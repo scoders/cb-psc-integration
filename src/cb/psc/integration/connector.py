@@ -144,7 +144,7 @@ class Connector(object):
         log.info(f"{self.name}: enqueuing results dispatch")
 
         if self.name not in config.sinks:
-            log.warning("no sink mapped to this connector; not dispatching result")
+            log.warning("no sink mapped to {self.name} connector; not dispatching result")
             return
 
         num_results = 0

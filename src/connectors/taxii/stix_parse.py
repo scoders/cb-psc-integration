@@ -274,10 +274,9 @@ def parse_stix_indicators(stix_package, default_score):
             continue
         score = get_stix_indicator_score(indicator, default_score)
         timestamp = get_stix_indicator_timestamp(indicator)
-        reports.extend(cybox_parse_observable(
-            indicator.observable, indicator, timestamp, score))
+        yield from cybox_parse_observable(
+            indicator.observable, indicator, timestamp, score)
 
-    return reports
 
 
 def parse_stix_observables(stix_package, default_score):
@@ -289,10 +288,9 @@ def parse_stix_observables(stix_package, default_score):
     for observable in stix_package.observables:
         if not observable:
             continue
-        reports.extend(cybox_parse_observable(
-            observable, None, timestamp, default_score))
-
-    return reports
+        yield from cybox_parse_observable(              # single element list
+            observable, None, timestamp, default_score)
+            
 
 
 def sanitize_stix(stix_xml):
@@ -318,8 +316,8 @@ def parse_stix(stix_xml, default_score):
         if not stix_package.indicators and not stix_package.observables:
             logger.info("No indicators or observables found in stix_xml")
             return reports
-        reports.extend(parse_stix_indicators(stix_package, default_score))
-        reports.extend(parse_stix_observables(stix_package, default_score))
+        yield from parse_stix_indicators(stix_package, default_score)
+        yield from parse_stix_observables(stix_package, default_score)
     except Exception as e:
         logger.warning(f"Problem parsing stix: {e}")
     return reports

@@ -12,7 +12,7 @@ sites:
         username: guest
         password: guest
         collections: 'guest.blutmagie_de_torExits'
-        start_date: 2019-09-19 00:00:00
+        start_date: 2019-09-20 00:00:00
         minutes_to_advance: 1440
         ca_cert: 
         http_proxy_url:
@@ -32,7 +32,7 @@ sites:
         username: 
         password: 
         collections: '*'
-        start_date: 2019-09-19 00:00:00
+        start_date: 2019-09-20 00:00:00
         minutes_to_advance: 1440
         ca_cert: 
         http_proxy_url:
