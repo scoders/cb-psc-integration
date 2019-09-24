@@ -274,7 +274,10 @@ def load_connectors():
                 log.warning(f"{conn_file} does not exist, skipping")
                 continue
 
-            mod_name = f"connectors.{conn_dir.name}"
+            if conn_dir.path not in sys.path:
+                sys.path.append(conn_dir.path)
+
+            mod_name = f"{conn_dir.name}.connector"
             log.info(f"loading {conn_file} as {mod_name}")
             try:
                 spec = importlib.util.spec_from_file_location(mod_name, conn_file)
