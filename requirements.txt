@@ -1,5 +1,6 @@
-cbapi==1.5.1
+cbapi == 1.5.1
 croniter
+python-dateutil
 Flask
 frozendict
 psycopg2
@@ -17,4 +18,3 @@ yara-python
 cabby
 lxml
 stix
-

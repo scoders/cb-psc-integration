@@ -8,8 +8,11 @@ services:
   sandbox:
     build: .
     volumes:
-      - ./configs/docker.yml:/cb/config.yml
+      - ./configs/docker.yml:/opt/cb/config.yml
+      - ./connectors:/opt/cb/integrations
     env_file:
+      - ./configs/credentials.env
+      # NOTE: Change to configs/production.env for deployment.
       - ./configs/development.env
       - ./configs/docker.env
     ports:

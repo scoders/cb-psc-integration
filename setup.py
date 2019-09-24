@@ -2,6 +2,12 @@
 
 from setuptools import setup
 
+
+def requirements():
+    with open("requirements.txt") as requirements:
+        return requirements.read().splitlines()
+
+
 setup(
     name="cb-psc-integration",
     version="0.0.1",
@@ -20,26 +26,5 @@ setup(
         "Programming Language :: Python",
         "Topic :: Software Development :: Libraries :: Python Modules",
     ],
-    install_requires=[
-        "cbapi == 1.5.1",
-        "croniter",
-        "python-dateutil",
-        "Flask",
-        "frozendict",
-        "psycopg2",
-        "pyyaml",
-        "redis == 3.3.7",
-        "requests",
-        "rq == 1.1.0",
-        "rq-scheduler @ git+https://github.com/rq/rq-scheduler@master#egg=rq-scheduler",
-        "schema",
-        "supervisor == 4.0.4",
-        "Sphinx",
-        "SQLAlchemy",
-        "validators >= 0.14.0",
-        "yara-python",
-        "cabby",
-        "lxml",
-        "stix"
-    ],
+    install_requires=requirements(),
 )

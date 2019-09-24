@@ -70,7 +70,7 @@ class Config:
     before failing.
     """
 
-    connector_dirs: Tuple[str, ...] = ("/usr/share/cb/integrations",)
+    connector_dirs: Tuple[str, ...] = ()
     """
     A list of directories to search for connectors.
     """
