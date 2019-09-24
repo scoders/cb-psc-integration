@@ -1,8 +1,11 @@
 FROM python:3.7-alpine
 
-WORKDIR /cb
+WORKDIR /opt/cb
 
 RUN apk add --no-cache postgresql-dev git openssh gcc musl-dev make
+
+COPY requirements.txt .
+RUN pip install -r requirements.txt
 
 COPY . .
 RUN pip install .

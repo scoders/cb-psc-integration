@@ -1,7 +1,6 @@
 cbth_profile: default
 connector_dirs:
-  - /usr/share/cb/integrations
-  - src/connectors
+  - /opt/cb/integrations
 result_sinks:
   "null":
     kind: feed

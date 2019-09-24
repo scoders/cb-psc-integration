@@ -1,0 +1,17 @@
+cbapi == 1.5.1
+croniter
+python-dateutil
+Flask
+frozendict
+psycopg2
+pyyaml
+redis == 3.3.7
+requests
+rq == 1.1.0
+rq-scheduler@git+https://github.com/rq/rq-scheduler@master#egg=rq-scheduler
+schema
+supervisor == 4.0.4
+Sphinx
+SQLAlchemy
+validators >= 0.14.0
+yara-python
