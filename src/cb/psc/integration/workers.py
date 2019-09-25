@@ -13,10 +13,11 @@ from rq.registry import StartedJobRegistry
 from rq_scheduler import Scheduler
 from rq.timeouts import JobTimeoutException 
 
+
 import cb.psc.integration.connector as connector
 from cb.psc.integration.config import config
 from cb.psc.integration.database import AnalysisResult, Binary, session
-from cb.psc.integration.utils import cbth, grouper
+from cb.psc.integration.utils import cbth, grouper, timeout_handler
 
 logging.basicConfig()
 log = logging.getLogger()
@@ -27,18 +28,14 @@ listen = ["binary_retrieval", "binary_analysis", "binary_cleanup", "result_dispa
 redis = r.Redis.from_url(config.redis_url)
 
 binary_retrieval = Queue("binary_retrieval", connection=redis)
-binary_analysis = Queue("binary_analysis", connection=redis)
+binary_analysis = Queue("binary_analysis", connection=redis, default_timeout=100)
 binary_cleanup = Queue("binary_cleanup", connection=redis)
 result_dispatch = Queue("result_dispatch", connection=redis)
 
-scheduled_retrieval = Scheduler(queue=binary_retrieval, connection=redis)
-#scheduled_dispatch = Scheduler(queue=result_dispatch, connection=redis)
-                    
 
 log = logging.getLogger(__name__)
 log.setLevel(config.loglevel)
 
-result_ids = []    #TODO: move elsewhere, than a global var
 
 def download_binary(hash, url, *, retry):
     """
@@ -163,7 +160,7 @@ def analyze_binary(hash):
 
     for conn in connector.connectors():
         log.debug(f"running {conn.name} analysis")
-        binary_analysis.enqueue(conn._analyze, binary, job_timeout=config.binary_timeout)
+        binary_analysis.enqueue(conn._analyze, binary, job_timeout=20)#config.binary_timeout)
 
 
 def flush_binary(binary):
@@ -234,24 +231,6 @@ def dispatch_result(result_ids):
     for result in results:
         result.update(dispatched=True)
 
-def dispatch_result_org(result_ids):
-    """
-    Dispatches the given results (by ID) to the appropriate sink.
-    """
-    log.debug(f"dispatch_result: {len(result_ids)} results")
-    results = session.query(AnalysisResult).filter(AnalysisResult.id.in_(result_ids)).all()
-
-    for result in results:
-        sink = config.sinks[result.connector_name]
-        log.debug(f"dispatch_result: {sink} {result}")
-
-        if sink.kind == "feed":
-            dispatch_to_feed(sink.id, results)
-        elif sink.kind == "watchlist":
-            dispatch_to_watchlist(sink.id, results)
-
-        result.update(dispatched=True)
-
 
 def load_connectors():
     """
@@ -292,20 +271,6 @@ def load_connectors():
 
     log.info(f"loaded connectors: {', '.join(c.name for c in connector.connectors())}")
 
-
-#scheduled_dispatch.schedule(
-#                    scheduled_time=datetime.utcnow(),
-#                    func=dispatch_result,
-#                    args=[datetime.now()],
-#                    interval=10)
-
-#TODO: match by func_name or id
-def timeout_handler(job, exc_type, exc_value, traceback):
-    if not isinstance(exc_value, JobTimeoutException):
-        return False
-    log.info(f"Caught timeout exception for job: {job}, {dir(job)}, {job.func_name}")
-    return False
-    
 
 if __name__ == "__main__":
     load_connectors()

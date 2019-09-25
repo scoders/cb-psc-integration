@@ -51,7 +51,6 @@ class Connector(object):
 
     _instance = None
     available = True
-    result_ids = []
 
     def __init__(self):
         if self.__class__._instance:
@@ -139,30 +138,45 @@ class Connector(object):
         ).normalize()
         return result
 
+    def fetch_result_ids(self):
+        conn = self.__class__   #singleton
+        result_ids = conn.result_ids
+        conn.result_ids = []
+        return result_ids
 
+    def cache_result_id(self, result_id):
+        conn = self.__class__   #singleton
+        conn.result_ids.append(result_id)
+
+    def init_result_ids(self):        
+        conn = self.__class__   #singleton
+        conn.result_ids = []
+    
     def batch_and_enqueue_dispatch(self, results):
         log.info(f"{self.name}: enqueuing results dispatch")
 
         if self.name not in config.sinks:
-            log.warning("no sink mapped to {self.name} connector; not dispatching result")
+            log.warning(f"no sink mapped to {self.name} connector; not dispatching result")
             return
 
+        self.init_result_ids()
+
         num_results = 0
-        self.result_ids = []
         for result in results:  # results is a generator
-            self.result_ids.append(result.id)
+            self.cache_result_id(result.id)
             num_results += 1
             if num_results % config.feed_size == 0:
-                workers.result_dispatch.enqueue(workers.dispatch_result, self.result_ids)
-                self.result_ids = []
+                log.debug(f"{self.name}: {num_results} results so far; sending dispatch request")
+                workers.result_dispatch.enqueue(workers.dispatch_result, self.fetch_result_ids())
 
-        if self.result_ids:  # leftover results
-            workers.result_dispatch.enqueue(workers.dispatch_result, self.result_ids)
-            self.result_ids = []
+        result_ids = self.fetch_result_ids()
+        if result_ids:  # leftover results
+            log.debug(f"{self.name}: {num_results} so far; sending dispatch request for leftover results")
+            workers.result_dispatch.enqueue(workers.dispatch_result, result_ids)
+        
+        log.info(f"{self.name}: dispatched {num_results} results in total")
 
 
-    #TODO: might be better to chunk rather than periodic emission (race conditions)
-    #Then if timeout occurs and chunking not compelte, then handle emission of remaining results with no race condition issues
     def _analyze(self, binary):
         log.info(f"{self.name}: analyzing binary {binary.sha256}")
         data = workers.redis.get(binary.data_key)
@@ -177,27 +191,6 @@ class Connector(object):
             log.info(f"binary {binary.sha256} has {refcount} references remaining")
         return results
 
-    def _analyze_org(self, binary):
-        log.info(f"{self.name}: analyzing binary {binary.sha256}")
-        data = workers.redis.get(binary.data_key)
-        results = self.analyze(binary, data)
-        result_ids = [result.id for result in results]
-
-        refcount = workers.redis.decr(binary.count_key)
-
-        if refcount < 0:
-            log.info(f"weird: refcount < 0 for cached binary: {binary.sha256}")
-        elif refcount == 0:
-            workers.binary_cleanup.enqueue(workers.flush_binary, binary)
-        else:
-            log.info(f"binary {binary.sha256} has {refcount} references remaining")
-
-        if self.name in config.sinks:
-            workers.result_dispatch.enqueue(workers.dispatch_result, result_ids)
-        else:
-            log.warning("no sink mapped to this connector; not dispatching result")
-
-        return results
 
     def analyze(self, binary, data):
         """

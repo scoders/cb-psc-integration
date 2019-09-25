@@ -3,6 +3,7 @@ from dataclasses import dataclass, field
 from frozendict import frozendict
 from datetime import datetime
 from cabby import create_client
+from cabby.exceptions import NoURIProvidedError, ClientException
 from connectors.taxii.stix_parse import parse_stix, BINDING_CHOICES
 from connectors.taxii.feed_helper import FeedHelper
 from cb.psc.integration.connector import Connector, ConnectorConfig
@@ -10,6 +11,7 @@ from cb.psc.integration.connector import Connector, ConnectorConfig
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
+handled_exceptions = (NoURIProvidedError, ClientException)
 
 @dataclass(eq=True, frozen=True)
 class TaxiiSiteConfig:
@@ -62,7 +64,7 @@ class TaxiiSiteConnector():
 
             self.client = client
 
-        except Exception as e:
+        except handled_exceptions as e:
             log.error(f"Error creating client: {e}")
 
     def create_uri(self, config_path):
@@ -83,7 +85,7 @@ class TaxiiSiteConnector():
                 uri=uri)  # autodetect if uri=None
             for collection in collections:
                 log.debug(f"Collection: {collection.name}, {collection.type}")
-        except Exception as e:
+        except handled_exceptions as e:
             log.warning(f"Problem fetching collections from taxii server: {e}")
         return collections
 
@@ -98,7 +100,7 @@ class TaxiiSiteConnector():
                 begin_date=feed_helper.start_date,
                 end_date=feed_helper.end_date,
                 content_bindings=BINDING_CHOICES)
-        except Exception as e:
+        except handled_exceptions as e:
             log.warning(f"problem polling taxii server: {e}")
         return content_blocks
 
@@ -192,7 +194,7 @@ class TaxiiConnector(Connector):
         try:
             for site_name, site_conf in self.config.sites.items():
                 self.sites[site_name] = TaxiiSiteConnector(site_conf)
-        except Exception as e:
+        except handled_exceptions as e:
             log.error(f"Error in parsing config file: {e}")
 
     def format_report(self, binary, report):
@@ -211,7 +213,7 @@ class TaxiiConnector(Connector):
                                  score=score)
             for ioc_key, ioc_val in ioc_dict.items():
                 result.ioc(values=ioc_val, field=ioc_key, link=link)
-        except Exception as e:
+        except handled_exceptions as e:
             log.warning(f"Problem in report formatting: {e}")
             result = self.result(
                 binary, analysis_name="exception_format_report", error=True)
@@ -223,10 +225,10 @@ class TaxiiConnector(Connector):
             log.info(f"Talking to {site_name} server")
             reports = site_conn.analyze(binary, data)
             if not reports:
-                yield [self.result(
+                yield self.result(
                                 binary,
                                 analysis_name=f"exception_analyze_{site_name}",
-                                error=True)]
+                                error=True)
             else:
                 for report in reports:
                     yield self.format_report(binary, report)

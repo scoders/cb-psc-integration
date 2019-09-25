@@ -9,9 +9,13 @@ from croniter import croniter
 from schema import And, Optional, Or, Schema, Use
 
 from cb.psc.integration.config import config
+from rq.timeouts import JobTimeoutException
+from cb.psc.integration import workers
+import cb.psc.integration.connector as connector
 
 log = logging.getLogger()
 log.setLevel(config.loglevel)
+
 
 AddJobSchema = Schema(
     {
@@ -53,3 +57,19 @@ def cbth():
 def grouper(iterable, n, fillvalue=None):
     args = [iter(iterable)] * n
     return zip_longest(*args)
+
+
+def timeout_handler(job, exc_type, exc_value, traceback):
+    if not isinstance(exc_value, JobTimeoutException):
+        return False
+    log.info(f"Caught timeout exception for job: {job},  {job.func_name}")
+    if job.func_name != '_analyze':
+        return False
+    for conn in connector.connectors():
+        result_ids = conn.fetch_result_ids()
+        log.info(f"Dispatching {len(result_ids)} leftover results for conn: {conn.name}")
+        if result_ids:  # leftover results
+            workers.result_dispatch.enqueue(workers.dispatch_result, result_ids)
+    return True
+
+
