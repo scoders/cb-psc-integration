@@ -255,12 +255,14 @@ def get_stix_indicator_timestamp(indicator):
 
 
 def get_stix_package_timestamp(stix_package):
+    timestamp = 0
+    if not stix_package or not stix_package.timestamp:
+        return timestamp
     try:
         timestamp = stix_package.timestamp
         timestamp = int(time.mktime(timestamp.timetuple()))
-    except Exception as e:
+    except (TypeError, OverflowError, ValueError) as e:
         logger.warning(f"Problem parsing stix timestamp: {e}")
-        timestamp = 0
     return timestamp
 
 
@@ -278,7 +280,6 @@ def parse_stix_indicators(stix_package, default_score):
             indicator.observable, indicator, timestamp, score)
 
 
-
 def parse_stix_observables(stix_package, default_score):
     reports = []
     if not stix_package.observables:
@@ -290,22 +291,27 @@ def parse_stix_observables(stix_package, default_score):
             continue
         yield from cybox_parse_observable(              # single element list
             observable, None, timestamp, default_score)
-            
 
 
 def sanitize_stix(stix_xml):
-    xml_root = etree.fromstring(stix_xml)
-    content = xml_root.find(
-        './/{http://taxii.mitre.org/messages/taxii_xml_binding-1.1}Content')
-    if content is not None and len(content) == 0 and len(list(content)) == 0:
-        # Content has no children.
-        # So lets make sure we parse the xml text for content and
-        # re-add it as valid XML so we can parse
-        _content = xml_root.find(
-            "{http://taxii.mitre.org/messages/taxii_xml_binding-1.1}Content_Block/{http://taxii.mitre.org/messages/taxii_xml_binding-1.1}Content")
-        new_stix_package = etree.fromstring(_content.text)
-        content.append(new_stix_package)
-    return etree.tostring(xml_root)
+    ret_xml = b''
+    try:
+        xml_root = etree.fromstring(stix_xml)
+        content = xml_root.find(
+            './/{http://taxii.mitre.org/messages/taxii_xml_binding-1.1}Content')
+        if content is not None and len(content) == 0 and len(list(content)) == 0:
+            # Content has no children.
+            # So lets make sure we parse the xml text for content and
+            # re-add it as valid XML so we can parse
+            _content = xml_root.find(
+                "{http://taxii.mitre.org/messages/taxii_xml_binding-1.1}Content_Block/{http://taxii.mitre.org/messages/taxii_xml_binding-1.1}Content")
+            if _content:
+                new_stix_package = etree.fromstring(_content.text)
+                content.append(new_stix_package)
+        ret_xml = etree.tostring(xml_root)
+    except etree.ParseError as e:
+        logger.warning(f"Problem parsing stix: {e}")
+    return ret_xml
 
 
 def parse_stix(stix_xml, default_score):
@@ -313,11 +319,14 @@ def parse_stix(stix_xml, default_score):
     try:
         stix_xml = sanitize_stix(stix_xml)
         stix_package = STIXPackage.from_xml(BytesIO(stix_xml))
+        if not stix_package:
+            logger.warning("Could not parse STIX xml")
+            return reports
         if not stix_package.indicators and not stix_package.observables:
             logger.info("No indicators or observables found in stix_xml")
             return reports
         yield from parse_stix_indicators(stix_package, default_score)
         yield from parse_stix_observables(stix_package, default_score)
-    except Exception as e:
+    except etree.XMLSyntaxError as e:
         logger.warning(f"Problem parsing stix: {e}")
-    return reports
+        return reports

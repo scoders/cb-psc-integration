@@ -36,7 +36,8 @@ class ConnectorConfig:
         # NOTE(ww): __file__ here refers to the base config file, so we need
         # to grab the module and resolve the file from there.
         conn_mod = importlib.import_module(cls.__module__)
-        config_filename = os.path.join(os.path.dirname(conn_mod.__file__), "config.yml")
+        config_filename = os.path.join(
+            os.path.dirname(conn_mod.__file__), "config.yml")
         with open(config_filename, "r") as config_file:
             config_data = yaml.load(config_file)
             log.info(f"loaded config data: {config_data}")
@@ -139,19 +140,19 @@ class Connector(object):
         return result
 
     def fetch_result_ids(self):
-        conn = self.__class__   #singleton
+        conn = self.__class__  # singleton
         result_ids = conn.result_ids
         conn.result_ids = []
         return result_ids
 
     def cache_result_id(self, result_id):
-        conn = self.__class__   #singleton
+        conn = self.__class__  # singleton
         conn.result_ids.append(result_id)
 
-    def init_result_ids(self):        
-        conn = self.__class__   #singleton
+    def init_result_ids(self):
+        conn = self.__class__  # singleton
         conn.result_ids = []
-    
+
     def batch_and_enqueue_dispatch(self, results):
         log.info(f"{self.name}: enqueuing results dispatch")
 
@@ -167,15 +168,16 @@ class Connector(object):
             num_results += 1
             if num_results % config.feed_size == 0:
                 log.debug(f"{self.name}: {num_results} results so far; sending dispatch request")
-                workers.result_dispatch.enqueue(workers.dispatch_result, self.fetch_result_ids())
+                workers.result_dispatch.enqueue(
+                    workers.dispatch_result, self.fetch_result_ids())
 
         result_ids = self.fetch_result_ids()
         if result_ids:  # leftover results
-            log.debug(f"{self.name}: {num_results} so far; sending dispatch request for leftover results")
-            workers.result_dispatch.enqueue(workers.dispatch_result, result_ids)
-        
-        log.info(f"{self.name}: dispatched {num_results} results in total")
+            log.debug(f"{self.name}: {num_results} so far; sending dispatch request for {len(result_ids)} leftover results")
+            workers.result_dispatch.enqueue(
+                workers.dispatch_result, result_ids)
 
+        log.info(f"{self.name}: dispatched {num_results} results in total")
 
     def _analyze(self, binary):
         log.info(f"{self.name}: analyzing binary {binary.sha256}")
@@ -190,7 +192,6 @@ class Connector(object):
         else:
             log.info(f"binary {binary.sha256} has {refcount} references remaining")
         return results
-
 
     def analyze(self, binary, data):
         """

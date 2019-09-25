@@ -13,6 +13,7 @@ log.setLevel(logging.DEBUG)
 
 handled_exceptions = (NoURIProvidedError, ClientException)
 
+
 @dataclass(eq=True, frozen=True)
 class TaxiiSiteConfig:
     site: str = ''
@@ -139,7 +140,6 @@ class TaxiiSiteConnector():
                 break
             reports_limit -= num_reports
 
-
     def import_collections(self, available_collections):
         desired_collections = self.config.collections
         desired_collections = [x.strip()
@@ -158,7 +158,6 @@ class TaxiiSiteConnector():
                 continue
             if want_all or collection.name.lower() in desired_collections:
                 yield from self.import_collection(collection)
-
 
     def analyze(self, binary, data):   # NOTE:ignoring binary for now
         reports = []
@@ -226,9 +225,9 @@ class TaxiiConnector(Connector):
             reports = site_conn.analyze(binary, data)
             if not reports:
                 yield self.result(
-                                binary,
-                                analysis_name=f"exception_analyze_{site_name}",
-                                error=True)
+                    binary,
+                    analysis_name=f"exception_analyze_{site_name}",
+                    error=True)
             else:
                 for report in reports:
                     yield self.format_report(binary, report)

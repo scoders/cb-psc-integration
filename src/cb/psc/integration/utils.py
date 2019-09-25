@@ -69,7 +69,6 @@ def timeout_handler(job, exc_type, exc_value, traceback):
         result_ids = conn.fetch_result_ids()
         log.info(f"Dispatching {len(result_ids)} leftover results for conn: {conn.name}")
         if result_ids:  # leftover results
-            workers.result_dispatch.enqueue(workers.dispatch_result, result_ids)
+            workers.result_dispatch.enqueue(
+                workers.dispatch_result, result_ids)
     return True
-
-

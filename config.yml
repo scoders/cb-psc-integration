@@ -2,6 +2,8 @@ cbth_profile: default
 connector_dirs:
   - /usr/share/cb/integrations
   - src/connectors
+feed_size: 50
+binary_timeout: 600
 result_sinks:
   "null":
     kind: feed
@@ -14,4 +16,4 @@ result_sinks:
   #   id: some_watchlist_id
   taxii:
     kind: feed
-    id: WurBK7L4Tm6SqJobP1lBUw
+    id: 5BUoxlXSY2MitUEgFJHUA
