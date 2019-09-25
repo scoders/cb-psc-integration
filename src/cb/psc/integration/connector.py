@@ -179,8 +179,14 @@ class Connector(object):
 
         log.info(f"{self.name}: dispatched {num_results} results in total")
 
+    def add_job_meta(self):
+        job = get_current_job()
+        job.meta['conn'] = self  # for identification during timeout handling
+        job.save_meta()
+
     def _analyze(self, binary):
         log.info(f"{self.name}: analyzing binary {binary.sha256}")
+        self.add_job_meta()
         data = workers.redis.get(binary.data_key)
         results = self.analyze(binary, data)
         self.batch_and_enqueue_dispatch(results)
