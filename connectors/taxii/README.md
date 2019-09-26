@@ -44,7 +44,7 @@ Example:
         fail_limit: 100
 ```
 The only new option is `fail_limit` which provides a knob to control the number of attempts per-collection before giving up trying to get (empty/malformed) STIX data out of a Taxii server.
-This is similar to the hardcoded '10` limit for `num_times_empty_content_blocks` in the original connector. 
+This is similar to the hardcoded `10` limit for `num_times_empty_content_blocks` in the original connector. 
 
 Note:
 The number of reports to batch before being disptached as feed to the CB TH backend (`feed_size`), as well as the connector's analysis timeout limit (`binary_timeout`) are connector-independent config options residing in `cb-psc-connector/config.yml`. 
@@ -72,5 +72,5 @@ Extracted from the original connector's `cb_feed_util.py`.
 2. There is a `URL` IOC-type that is not currently being extracted.
 3. Reports seem to get lost at CbTh backend. Querying for reports via cbapi's `list-iocs` lists fewer IOCs/reports than what gets successfully shipped to the CB TH feed. 
 4. At par with its Response counterpart, the ThreatHunter Taxii connector only pulls STIX content from a Taxii server, and does not perform ingestion of the input `binary` (in the entrypoint `analyze()` function) to the server. The `binary` is essentially ignored.
-5. Every time the sandbox calls the Taxii connector (which might be on every `analyze` REST POST request), the plugin would start repeating content fetching from the server, disregarding content pulled on the previosu run. The logic to pull/send only new content needs to be incorporated in the connector.
+5. Every time the sandbox calls the Taxii connector (which might be on every `analyze` REST POST request), the plugin would start repeating content fetching from the server, disregarding content pulled on the previous run. The logic to pull/send only new content needs to be incorporated in the connector.
 
