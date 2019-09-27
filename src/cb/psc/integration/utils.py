@@ -5,12 +5,11 @@ from itertools import zip_longest
 import cbapi.psc.threathunter as threathunter
 import dateutil.parser
 import validators
-from croniter import croniter
-from schema import And, Optional, Or, Schema, Use
-
-from cb.psc.integration.config import config
-from rq.timeouts import JobTimeoutException
 from cb.psc.integration import workers
+from cb.psc.integration.config import config
+from croniter import croniter
+from rq.timeouts import JobTimeoutException
+from schema import And, Optional, Or, Schema, Use
 
 log = logging.getLogger()
 log.setLevel(config.loglevel)
@@ -63,16 +62,15 @@ def timeout_handler(job, exc_type, exc_value, traceback):
         return True  # continue chaining exc handlers
 
     log.info(f"Caught timeout exception for job: {job}, job_id: {job.id},  {job.func_name}")
-    if job.func_name != '_analyze':
+    if job.func_name != "_analyze":
         return True
 
-    conn = job.meta['conn']
+    conn = job.meta["conn"]
     if not conn:
         return True
 
     result_ids = conn.fetch_result_ids()
     log.info(f"Dispatching {len(result_ids)} leftover results for conn: {conn.name}")
     if result_ids:  # leftover results
-        workers.result_dispatch.enqueue(
-            workers.dispatch_result, result_ids)
+        workers.result_dispatch.enqueue(workers.dispatch_result, result_ids)
     return False

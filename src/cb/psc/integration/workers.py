@@ -3,26 +3,23 @@ import logging
 import os.path
 import sys
 
+import cb.psc.integration.connector as connector
 import cbapi.psc.threathunter as threathunter
 import redis as r
 import requests
+from cb.psc.integration.config import config
+from cb.psc.integration.database import AnalysisResult, Binary, session
+from cb.psc.integration.utils import cbth, grouper, timeout_handler
 from cbapi.errors import ApiError
 from rq import Connection, Queue, Worker
 from rq.job import Job
 from rq.registry import StartedJobRegistry
 
-
-import cb.psc.integration.connector as connector
-from cb.psc.integration.config import config
-from cb.psc.integration.database import AnalysisResult, Binary, session
-from cb.psc.integration.utils import cbth, grouper, timeout_handler
-
 logging.basicConfig()
 log = logging.getLogger()
 log.setLevel(config.loglevel)
 
-listen = ["binary_retrieval", "binary_analysis",
-          "binary_cleanup", "result_dispatch"]
+listen = ["binary_retrieval", "binary_analysis", "binary_cleanup", "result_dispatch"]
 
 redis = r.Redis.from_url(config.redis_url)
 
@@ -46,8 +43,7 @@ def download_binary(hash, url, *, retry):
     if not resp.status_code == requests.codes.ok:
         if resp.status_code == 404 and retry > 0:
             log.warning(f"download 404'd for {hash}, retrying ({retry - 1} remaining)")
-            binary_retrieval.enqueue(
-                download_binary, hash, url, retry=retry - 1)
+            binary_retrieval.enqueue(download_binary, hash, url, retry=retry - 1)
         else:
             log.error(f"download failed for {hash}: {resp.status_code}")
             resp.raise_for_status()
@@ -68,8 +64,7 @@ def filter_available(hashes):
     available within the binary cache.
     """
     results = (
-        session.query(Binary.sha256).filter(
-            (Binary.sha256.in_(hashes)) & (Binary.available)).all()
+        session.query(Binary.sha256).filter((Binary.sha256.in_(hashes)) & (Binary.available)).all()
     )
 
     # TODO(ww): This is a little silly. Is there a right
@@ -128,8 +123,7 @@ def fetch_binaries(hashes):
         download = binary_retrieval.enqueue(
             download_binary, found.sha256, found.url, retry=config.binary_fetch_max_retry
         )
-        binary_analysis.enqueue(
-            analyze_binary, found.sha256, depends_on=download)
+        binary_analysis.enqueue(analyze_binary, found.sha256, depends_on=download)
 
     if len(downloads.error) > 0:
         log.info(f"retrying retrieval of {len(downloads.error)}/{len(hashes)} binaries")
@@ -145,8 +139,7 @@ def active_analyses():
     analysis tasks.
     """
     pending_jobs = Job.fetch_many(binary_analysis.job_ids, connection=redis)
-    pending_ids = [
-        job.id for job in pending_jobs if job.func_name != "analyze_binary"]
+    pending_ids = [job.id for job in pending_jobs if job.func_name != "analyze_binary"]
     started = StartedJobRegistry("binary_analysis", connection=redis)
 
     return pending_ids + started.get_job_ids()
@@ -163,8 +156,7 @@ def analyze_binary(hash):
 
     for conn in connector.connectors():
         log.debug(f"running {conn.name} analysis")
-        binary_analysis.enqueue(conn._analyze, binary,
-                                job_timeout=config.binary_timeout)
+        binary_analysis.enqueue(conn._analyze, binary, job_timeout=config.binary_timeout)
 
 
 def flush_binary(binary):
@@ -217,8 +209,7 @@ def dispatch_result(result_ids):
     Dispatches the given results (by ID) to the appropriate sink.
     """
     log.debug(f"dispatch_result: {len(result_ids)} results")
-    results = session.query(AnalysisResult).filter(
-        AnalysisResult.id.in_(result_ids)).all()
+    results = session.query(AnalysisResult).filter(AnalysisResult.id.in_(result_ids)).all()
 
     results = [result for result in results if not result.dispatched]
     if not results:
@@ -246,6 +237,8 @@ def load_connectors():
         if not os.path.isdir(path):
             log.warning(f"{path} is not a directory, skipping")
             continue
+        if path not in sys.path:
+            sys.path.append(path)
 
         log.info(f"searching path: {path}")
         for conn_dir in os.scandir(path):
@@ -264,8 +257,7 @@ def load_connectors():
             mod_name = f"{conn_dir.name}.connector"
             log.info(f"loading {conn_file} as {mod_name}")
             try:
-                spec = importlib.util.spec_from_file_location(
-                    mod_name, conn_file)
+                spec = importlib.util.spec_from_file_location(mod_name, conn_file)
                 conn_mod = importlib.util.module_from_spec(spec)
                 spec.loader.exec_module(conn_mod)
 

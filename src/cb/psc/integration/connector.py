@@ -1,15 +1,14 @@
 import importlib
 import logging
 import os
-from dataclasses import dataclass
 from functools import lru_cache
 
 import yaml
-from rq import get_current_job
-
 from cb.psc.integration import workers
 from cb.psc.integration.config import config
 from cb.psc.integration.database import AnalysisResult
+from dataclasses import dataclass
+from rq import get_current_job
 
 log = logging.getLogger(__name__)
 log.setLevel(config.loglevel)
@@ -36,8 +35,7 @@ class ConnectorConfig:
         # NOTE(ww): __file__ here refers to the base config file, so we need
         # to grab the module and resolve the file from there.
         conn_mod = importlib.import_module(cls.__module__)
-        config_filename = os.path.join(
-            os.path.dirname(conn_mod.__file__), "config.yml")
+        config_filename = os.path.join(os.path.dirname(conn_mod.__file__), "config.yml")
         with open(config_filename, "r") as config_file:
             config_data = yaml.load(config_file)
             log.info(f"loaded config data: {config_data}")
@@ -168,20 +166,20 @@ class Connector(object):
             num_results += 1
             if num_results % config.feed_size == 0:
                 log.debug(f"{self.name}: {num_results} results so far; sending dispatch request")
-                workers.result_dispatch.enqueue(
-                    workers.dispatch_result, self.fetch_result_ids())
+                workers.result_dispatch.enqueue(workers.dispatch_result, self.fetch_result_ids())
 
         result_ids = self.fetch_result_ids()
         if result_ids:  # leftover results
-            log.debug(f"{self.name}: {num_results} so far; sending dispatch request for {len(result_ids)} leftover results")
-            workers.result_dispatch.enqueue(
-                workers.dispatch_result, result_ids)
+            log.debug(
+                f"{self.name}: {num_results} so far; sending dispatch request for {len(result_ids)} leftover results"
+            )
+            workers.result_dispatch.enqueue(workers.dispatch_result, result_ids)
 
         log.info(f"{self.name}: dispatched {num_results} results in total")
 
     def add_job_meta(self):
         job = get_current_job()
-        job.meta['conn'] = self  # for identification during timeout handling
+        job.meta["conn"] = self  # for identification during timeout handling
         job.save_meta()
 
     def _analyze(self, binary):

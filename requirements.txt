@@ -1,4 +1,4 @@
-cbapi == 1.5.1
+cbapi==1.5.1
 croniter
 python-dateutil
 Flask

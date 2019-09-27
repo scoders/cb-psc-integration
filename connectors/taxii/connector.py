@@ -4,8 +4,8 @@ from frozendict import frozendict
 from datetime import datetime
 from cabby import create_client
 from cabby.exceptions import NoURIProvidedError, ClientException
-from connectors.taxii.stix_parse import parse_stix, BINDING_CHOICES
-from connectors.taxii.feed_helper import FeedHelper
+from stix_parse import parse_stix, BINDING_CHOICES
+from feed_helper import FeedHelper
 from cb.psc.integration.connector import Connector, ConnectorConfig
 
 log = logging.getLogger(__name__)

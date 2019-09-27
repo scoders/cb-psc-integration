@@ -2,23 +2,12 @@ import enum
 import logging
 from datetime import datetime
 
-from sqlalchemy import (
-    JSON,
-    Boolean,
-    Column,
-    DateTime,
-    Enum,
-    ForeignKey,
-    Integer,
-    String,
-    create_engine,
-    orm
-)
+from cb.psc.integration.config import config
+from sqlalchemy import (JSON, Boolean, Column, DateTime, Enum, ForeignKey,
+                        Integer, String, create_engine, orm)
 from sqlalchemy.exc import DatabaseError
 from sqlalchemy.ext.declarative import as_declarative
 from sqlalchemy.orm import scoped_session, sessionmaker
-
-from cb.psc.integration.config import config
 
 log = logging.getLogger(__name__)
 log.setLevel(config.loglevel)
@@ -249,7 +238,7 @@ class AnalysisResult(Base):
         if self.score <= 0 or self.score > 10:
             log.warning(f"normalizing OOB score: {self.score}")
             self.update(score=max(1, min(self.score, 10)))
-            # NOTE: min 1 and not 0 
+            # NOTE: min 1 and not 0
             # else err 400 from cbapi: Report severity must be between 1 & 10
         return self
 
