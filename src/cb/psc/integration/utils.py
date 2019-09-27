@@ -5,11 +5,12 @@ from itertools import zip_longest
 import cbapi.psc.threathunter as threathunter
 import dateutil.parser
 import validators
-from cb.psc.integration import workers
-from cb.psc.integration.config import config
 from croniter import croniter
 from rq.timeouts import JobTimeoutException
 from schema import And, Optional, Or, Schema, Use
+
+from cb.psc.integration import workers
+from cb.psc.integration.config import config
 
 log = logging.getLogger()
 log.setLevel(config.loglevel)

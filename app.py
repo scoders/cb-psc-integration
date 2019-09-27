@@ -1,13 +1,19 @@
 import logging
 
+from flask import Flask, abort, jsonify, request
+from schema import SchemaError
+
 import cb.psc.integration.database as database
 import cb.psc.integration.workers as workers
 from cb.psc.integration.config import config
-from cb.psc.integration.utils import (AddJobSchema, AnalyzeSchema,
-                                      GetJobsSchema, RemoveAnalysesSchema,
-                                      RemoveJobSchema, RetrieveAnalysesSchema)
-from flask import Flask, abort, jsonify, request
-from schema import SchemaError
+from cb.psc.integration.utils import (
+    AddJobSchema,
+    AnalyzeSchema,
+    GetJobsSchema,
+    RemoveAnalysesSchema,
+    RemoveJobSchema,
+    RetrieveAnalysesSchema
+)
 
 log = logging.getLogger()
 log.setLevel(config.loglevel)

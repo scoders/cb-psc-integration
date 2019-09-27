@@ -3,17 +3,18 @@ import logging
 import os.path
 import sys
 
-import cb.psc.integration.connector as connector
 import cbapi.psc.threathunter as threathunter
 import redis as r
 import requests
-from cb.psc.integration.config import config
-from cb.psc.integration.database import AnalysisResult, Binary, session
-from cb.psc.integration.utils import cbth, grouper, timeout_handler
 from cbapi.errors import ApiError
 from rq import Connection, Queue, Worker
 from rq.job import Job
 from rq.registry import StartedJobRegistry
+
+import cb.psc.integration.connector as connector
+from cb.psc.integration.config import config
+from cb.psc.integration.database import AnalysisResult, Binary, session
+from cb.psc.integration.utils import cbth, grouper, timeout_handler
 
 logging.basicConfig()
 log = logging.getLogger()

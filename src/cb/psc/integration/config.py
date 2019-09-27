@@ -1,10 +1,10 @@
 import functools
 import logging
 import os
+from dataclasses import dataclass, field
 from typing import Mapping, Optional, Tuple
 
 import yaml
-from dataclasses import dataclass, field
 from frozendict import frozendict
 
 logging.basicConfig()
